@@ -25,6 +25,9 @@ dependencies = [
   "gdm @ git+https://github.nrel.gov/CADET/grid-data-models.git",
 ]
 
+[project.optional-dependencies]
+dev = ["pre-commit", "pytest", "ruff"]
+
 [project.urls]
 Documentation = "https://github.com/unknown/nrel-shift#readme"
 Issues = "https://github.com/unknown/nrel-shift/issues"
