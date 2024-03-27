@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = ''
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = "BSD-3-clause"
 keywords = []
 authors = [
   { name = "Kapil Duwadi", email = "Kapil.Duwadi@nrel.gov" },
@@ -26,7 +26,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "pytest", "ruff"]
+dev = [
+  "pre-commit",
+  "pytest",
+  "ruff",
+  "sphinx",
+  "pydata-sphinx-theme",
+  "myst-parser",
+]
 
 [project.urls]
 Documentation = "https://github.com/unknown/nrel-shift#readme"
