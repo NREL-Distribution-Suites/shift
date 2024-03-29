@@ -52,19 +52,25 @@ def get_parcels(
     is created by forming a sqaure bounding box using max distance.
     We use osmnx package to fetch these buildings.
 
-    Args
-        location (str | GeoLocation | Polygon): Location for which
-            openstreet parcels are to be fetched.
-        max_distance (Distance): Maximum distance to form a bounding box
+    Parameters
+    ----------
+        location : str | GeoLocation | Polygon
+            Location for which openstreet parcels
+            are to be fetched.
+        max_distance : Distance
+            Maximum distance to form a bounding box
             within which buildings are fetched.
 
-    Return:
-        list[ParcelModel]: List of `ParcelModel`.
+    Returns
+    -------
+        list[ParcelModel]
+            List of `ParcelModel`.
 
-    Examples:
-        >>> from shift.parcel.openstreet import get_parcels
-        >>> from infrasys.quantities import Distance
-        >>> get_parcels("Fort Worth, Texas", Distance(100, "m*m"))
+    Examples
+    --------
+    >>> from shift.parcel.openstreet import get_parcels
+    >>> from infrasys.quantities import Distance
+    >>> get_parcels("Fort Worth, Texas", Distance(100, "m*m"))
     """
     logger.info(f"Attempting to fecth parcels for {location}")
     tags = {"building": True}

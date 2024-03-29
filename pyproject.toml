@@ -33,6 +33,7 @@ dev = [
   "sphinx",
   "pydata-sphinx-theme",
   "myst-parser",
+  "autodoc_pydantic",
 ]
 
 [project.urls]

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class GeoLocation(NamedTuple):
-    """Inyerface for geo location."""
+    """Interface for geo location."""
 
     longitude: Annotated[
         float,
