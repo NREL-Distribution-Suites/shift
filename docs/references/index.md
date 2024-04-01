@@ -6,4 +6,6 @@
 :caption: Parcel
 
 parcel
+clustering
+dist_graph
 ```
