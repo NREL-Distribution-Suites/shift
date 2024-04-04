@@ -1,7 +1,7 @@
-from shift.minified_distribution_graph import (
-    MinifiedDistributionGraph,
+from shift.distribution_graph import (
+    DistributionGraph,
     NodeModel,
     EdgeModel,
-    AssetTypes,
-    EdgeTypes,
+    VALID_EDGE_TYPES,
+    VALID_NODE_TYPES,
 )

@@ -1,27 +1,30 @@
-from enum import Enum
-from typing import Annotated, Callable, Iterable
+from typing import Annotated, Callable, Iterable, Type
 
 import networkx as nx
 from pydantic import BaseModel, Field
-from shift.exceptions import EdgeAlreadyExists, NodeAlreadyExists, SubstatioNodeAlreadyExists
+from shift.exceptions import EdgeAlreadyExists, NodeAlreadyExists, VsourceNodeAlreadyExists
+from gdm import (
+    DistributionLoad,
+    DistributionSolar,
+    DistributionCapacitor,
+    DistributionVoltageSource,
+    DistributionBranch,
+    DistributionTransformer,
+)
+
+VALID_NODE_TYPES = Annotated[
+    Type[DistributionLoad]
+    | Type[DistributionSolar]
+    | Type[DistributionCapacitor]
+    | Type[DistributionVoltageSource],
+    Field(..., description="Possible node types."),
+]
 
 
-class AssetTypes(str, Enum):
-    """Enumeration for node types."""
-
-    LOAD = "load"
-    SOLAR = "solar"
-    CAPACITOR = "capacitor"
-    SUBSTATION = "substation"
-
-
-class EdgeTypes(str, Enum):
-    """Enumeration for edge types."""
-
-    BRANCH = "branch"
-    TRANSFORMER = "transformer"
-    RECLOSER = "recloser"
-    SWITCH = "switch"
+VALID_EDGE_TYPES = Annotated[
+    Type[DistributionBranch] | Type[DistributionTransformer],
+    Field(..., description="Possible edge types."),
+]
 
 
 class NodeModel(BaseModel):
@@ -29,7 +32,7 @@ class NodeModel(BaseModel):
 
     name: Annotated[str, Field(..., description="Name of the node.")]
     assets: Annotated[
-        set[AssetTypes], Field([], description="List of asset types attached to node.")
+        set[VALID_NODE_TYPES], Field([], description="Set of asset types attached to node.")
     ]
 
 
@@ -37,18 +40,17 @@ class EdgeModel(BaseModel):
     """Interface for edge model."""
 
     name: Annotated[str, Field(..., description="Name of the node.")]
-    edge_type: Annotated[EdgeTypes, Field(..., description="Edge type.")]
+    edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
 
 
-class MinifiedDistributionGraph:
+class DistributionGraph:
     """A class representing distribution system as a graph.
 
     Internally, graph data is stored using networkx Graph instance.
 
     Examples
     --------
-    >>> from shift import MinifiedDistributionGraph
-    >>> dgraph = MinifiedDistributionGraph()
+    >>> dgraph = DistributionGraph()
 
     Adding a node the system.
 
@@ -57,14 +59,15 @@ class MinifiedDistributionGraph:
 
     Adding multiple nodes to the system.
 
-    >>> dgraph.add_nodes([NodeModel(name="node_2", assets[NodeTypes.SUBSTATION]),
+    >>> from gdm import DistributionLoad
+    >>> dgraph.add_nodes([NodeModel(name="node_2", assets={DistributionLoad}),
         NodeModel(name="node_3")])
 
     Adding an edge to the system.
 
     >>> from shift import EdgeModel
     >>> dgraph.add_edge("node_1", "node_2", edge_data=EdgeModel(name="node1_node2",
-        edge_type=EdgeTypes.BRANCH))
+        edge_type=DistributionBranch))
 
     Getting node data.
 
@@ -85,7 +88,7 @@ class MinifiedDistributionGraph:
 
     def __init__(self):
         self._graph = nx.Graph()
-        self.substation_node = None
+        self.vsource_node = None
 
     def add_node(self, node: NodeModel):
         """Adds node to the graph.
@@ -99,7 +102,7 @@ class MinifiedDistributionGraph:
         ------
         NodeAlreadyExists
             Raises this exception if node already exists.
-        SubstatioNodeAlreadyExists:
+        VsourceNodeAlreadyExists:
             Raises this exception if an attempt is made to add
             node with substation in assets more than once.
 
@@ -107,18 +110,18 @@ class MinifiedDistributionGraph:
         --------
 
         >>> import shift as sf
-        >>> dg = sf.MinifiedDistributionGraph()
+        >>> dg = sf.DistributionGraph()
         >>> dg.add_node(sf.NodeModel(name="node_1"))
         """
 
         if self._graph.has_node(node.name):
             msg = f"{node=} already exists in the graph."
             raise NodeAlreadyExists(msg)
-        if self.substation_node is not None:
-            msg = f"{self.substation_node=} already exists. Cannot add {node=}"
-            raise SubstatioNodeAlreadyExists(msg)
+        if self.vsource_node is not None:
+            msg = f"{self.vsource_node=} already exists. Cannot add {node=}"
+            raise VsourceNodeAlreadyExists(msg)
         self._graph.add_node(node.name, node_data=node)
-        if AssetTypes.SUBSTATION in node.assets:
+        if DistributionVoltageSource in node.assets:
             self.substation_node = node.name
 
     def add_nodes(self, nodes: list[NodeModel]):
@@ -133,7 +136,7 @@ class MinifiedDistributionGraph:
         --------
 
         >>> import shift as sf
-        >>> dg = sf.MinifiedDistributionGraph()
+        >>> dg = sf.DistributionGraph()
         >>> dg.add_nodes([sf.NodeModel(name="node_1"),
             sf.NodeModel(name="node_2")])
         """
@@ -161,7 +164,7 @@ class MinifiedDistributionGraph:
         --------
 
         >>> import shift as sf
-        >>> dg = sf.MinifiedDistributionGraph()
+        >>> dg = sf.DistributionGraph()
         >>> dg.add_nodes([sf.NodeModel(name="node_1"),
             sf.NodeModel(name="node_2")])
         >>> df.add_edge("node_1", "node_2")
@@ -187,8 +190,9 @@ class MinifiedDistributionGraph:
         --------
 
         >>> import shift as sf
-        >>> dg = sg.MinifiedDistributionGraph()
-        >>> dg.add_node(sf.NodeModel(name="node_1", assets=[sf.AssetTypes.LOAD]))
+        >>> from gdm import DistributionLoad
+        >>> dg = sg.DistributionGraph()
+        >>> dg.add_node(sf.NodeModel(name="node_1", assets={DistributionLoad}))
         >>> dg.get_node("node_1")
         """
         return self._graph.nodes[node_name]["node_data"]
@@ -212,8 +216,9 @@ class MinifiedDistributionGraph:
         --------
 
         >>> import shift as sf
-        >>> dg = sf.MinifiedDistributionGraph()
-        >>> dg.add_node(sf.NodeModel(name="node_1", assets=[sf.AssetTypes.LOAD]))
+        >>> from gdm import DistributionLoad
+        >>> dg = sf.DistributionGraph()
+        >>> dg.add_node(sf.NodeModel(name="node_1", assets={DistributionLoad}))
             dg.get_node("node_1")
         >>> dg.get_nodes()
         """
@@ -234,7 +239,7 @@ class MinifiedDistributionGraph:
         --------
 
         >>> import shift as sf
-        >>> dg = sf.MinifiedDistributionGraph()
+        >>> dg = sf.DistributionGraph()
         >>> dg.add_node(sf.NodeModel(name="node_1"))
         >>> dg.remove_node("node_1")
         """

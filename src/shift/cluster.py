@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from sklearn.cluster import KMeans
 import numpy as np
 
-from shift.parcel.model import GeoLocation
+from shift.data_model import GeoLocation
 
 
 class ClusterModel(BaseModel):

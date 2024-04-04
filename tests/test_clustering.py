@@ -1,5 +1,5 @@
 from shift.cluster import get_kmeans_clusters, ClusterModel
-from shift.parcel.model import GeoLocation
+from shift.data_model import GeoLocation
 
 
 def test_point_clustering():
