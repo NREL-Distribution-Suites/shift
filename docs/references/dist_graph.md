@@ -1,9 +1,9 @@
-# MinifiedDistributionGraph
+# DistributionGraph
 
 
 ```{eval-rst}
-.. currentmodule:: shift.minified_distribution_graph
-.. autoclass:: MinifiedDistributionGraph
+.. currentmodule:: shift
+.. autoclass:: DistributionGraph
 ```
 
 ## Methods
@@ -11,11 +11,15 @@
 ```{eval-rst}
 .. autosummary::
 
-   MinifiedDistributionGraph.__init__
-   MinifiedDistributionGraph.add_node
-   MinifiedDistributionGraph.add_nodes
-   MinifiedDistributionGraph.add_edge
-   MinifiedDistributionGraph.get_node
-   MinifiedDistributionGraph.get_nodes
-   MinifiedDistributionGraph.remove_node
+   DistributionGraph.__init__
+   DistributionGraph.add_node
+   DistributionGraph.add_nodes
+   DistributionGraph.add_edge
+   DistributionGraph.get_node
+   DistributionGraph.get_nodes
+   DistributionGraph.remove_node
+   DistributionGraph.get_edge
+   DistributionGraph.remove_edge
+   DistributionGraph.get_undirected_graph
+   DistributionGraph.get_dfs_tree
 ```

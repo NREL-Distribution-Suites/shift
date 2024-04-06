@@ -1,22 +1,10 @@
-from typing import Annotated
-
-from pydantic import BaseModel, Field
 from sklearn.cluster import KMeans
 import numpy as np
 
-from shift.parcel.model import GeoLocation
+from shift.data_model import GeoLocation, GroupModel
 
 
-class ClusterModel(BaseModel):
-    """Interface for cluster model."""
-
-    center: Annotated[GeoLocation, Field(..., description="Centre of the cluster.")]
-    points: Annotated[
-        list[GeoLocation], Field(..., description="List of points that belong to this cluster.")
-    ]
-
-
-def get_kmeans_clusters(num_cluster: int, points: list[GeoLocation]) -> list[ClusterModel]:
+def get_kmeans_clusters(num_cluster: int, points: list[GeoLocation]) -> list[GroupModel]:
     """Function to return kmeans clusters for given set of points.
 
     Parameters
@@ -42,7 +30,7 @@ def get_kmeans_clusters(num_cluster: int, points: list[GeoLocation]) -> list[Clu
     clusters = KMeans(n_clusters=num_cluster, random_state=0).fit(points)
 
     return [
-        ClusterModel(
+        GroupModel(
             center=GeoLocation(*center),
             points=[GeoLocation(*el) for el in np.array(points)[clusters.labels_ == idx]],
         )

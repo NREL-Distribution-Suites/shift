@@ -4,7 +4,7 @@ import osmnx as ox
 import shapely
 from loguru import logger
 
-from shift.parcel.model import ParcelModel, GeoLocation
+from shift.data_model import ParcelModel, GeoLocation
 
 
 def convert_buildings_to_parcel(geo_df: GeoDataFrame) -> list[ParcelModel]:
@@ -17,7 +17,6 @@ def convert_buildings_to_parcel(geo_df: GeoDataFrame) -> list[ParcelModel]:
         list[ParcelModel]
     """
     logger.info(f"Length of geodataframe: {len(geo_df)}, CRS: {geo_df.crs}")
-
     parcels: list[ParcelModel] = []
     for idx, geometry in enumerate(geo_df.to_dict(orient="records")):
         name = f"parcel_{idx}"
@@ -70,21 +69,21 @@ def get_parcels(
     --------
     >>> from shift.parcel.openstreet import get_parcels
     >>> from infrasys.quantities import Distance
-    >>> get_parcels("Fort Worth, Texas", Distance(100, "m*m"))
+    >>> get_parcels("Fort Worth, Texas", Distance(100, "m"))
     """
     logger.info(f"Attempting to fecth parcels for {location}")
     tags = {"building": True}
     if isinstance(location, str):
         return convert_buildings_to_parcel(
-            ox.geometries_from_address(location, tags, dist=max_distance.to("m").magnitude)
+            ox.features_from_address(location, tags, dist=max_distance.to("m").magnitude)
         )
     elif isinstance(location, GeoLocation):
         return convert_buildings_to_parcel(
-            ox.geometries_from_point(
+            ox.features_from_point(
                 list(reversed(location)), tags, dist=max_distance.to("m").magnitude
             )
         )
     elif isinstance(location, list):
         return convert_buildings_to_parcel(
-            ox.geometries_from_polygon(shapely.Polygon(location), tags)
+            ox.features_from_polygon(shapely.Polygon(location), tags)
         )

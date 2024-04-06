@@ -1,0 +1,292 @@
+from abc import abstractmethod
+from collections import defaultdict
+import uuid
+from infrasys.quantities import Distance
+import networkx as nx
+from networkx.algorithms import approximation as ax
+from loguru import logger
+from gdm import DistributionBranch, DistributionVoltageSource, DistributionLoad
+
+from shift.graph.base_graph_builder import BaseGraphBuilder
+from shift.graph.distribution_graph import (
+    DistributionGraph,
+    EdgeModel,
+    NodeModel,
+    VALID_NODE_TYPES,
+)
+from shift.data_model import GeoLocation, GroupModel
+from shift.utils.nearest_points import get_nearest_points
+
+
+class OpenStreetGraphBuilder(BaseGraphBuilder):
+    """Abstract class interface for building distribution graph using openstreet data.
+
+    Parameters
+    ----------
+
+    groups: list[GroupModel]
+        List of groups for building a openstreet network.
+    source_location: GeoLocation
+        Power source location.
+    buffer: Distance, optional
+        Buffer to be applied in a bounding polygon formed
+        by `points` for searching road network. Defaults to 20m.
+
+    Examples
+    --------
+
+    >>> from shift import get_parcels, get_kmeans_clusters
+    >>> points = get_parcels("Fort Worth, Texas", Distance(100, "m"))
+    >>> groups = get_kmeans_clusters(5, [el.geometry[0] if isinstance(el.geometry, list)
+        else el.geometry for el in points])
+    >>> builder = OpenStreetGraphBuilder(groups, GeoLocation(-97.3308, 32.7555))
+    >>> graph = builder.get_distribution_graph()
+    """
+
+    def __init__(
+        self,
+        groups: list[GroupModel],
+        source_location: GeoLocation,
+        buffer: Distance = Distance(20, "m"),
+    ):
+        """Constructor for the class.
+
+        Parameters
+        ----------
+
+        groups: list[GroupModel]
+            List of groups for building a openstreet network.
+        source_location: GeoLocation
+            Power source location.
+        buffer: Distance, optional
+            Buffer to be applied in a bounding polygon formed
+            by `points` for searching road network. Defaults to 20m.
+        """
+        self.groups = groups
+        self.source_location = source_location
+        self.buffer = buffer
+
+    @staticmethod
+    def _get_tuple_to_node_mapper(graph: nx.Graph) -> dict[tuple, str]:
+        """Method to build tuple to node mapper.
+
+        Assumes "x" and "y" coordinate values are available
+        in the graph.
+
+        Parameters
+        ----------
+
+        graph: nx.Graph
+            Instance of networkx graph.
+
+        Returns
+        -------
+            dict[tuple, str]
+        """
+
+        return {
+            (data["x"], data["y"]): node for node, data in dict(graph.nodes(data=True)).items()
+        }
+
+    def _get_nearest_nodes(self, graph: nx.Graph, points: list[GeoLocation]) -> list[str]:
+        """Method to compute nearest nodes in the graph.
+
+        Parameters
+        ----------
+
+        graph: nx.Graph
+            Instance of networkx graph.
+        points: list[GeoLocation]
+            List of geolocations
+
+        Returns
+        -------
+            list[str]
+        """
+        graph_nodes_mapper = self._get_tuple_to_node_mapper(graph)
+        nearest_nodes = get_nearest_points(list(graph_nodes_mapper.keys()), points)
+        return [graph_nodes_mapper[tuple(node)] for node in nearest_nodes]
+
+    @staticmethod
+    def _get_steiner_tree(graph: nx.Graph, nearest_nodes: list[str]):
+        """Returns steineer tree from a given graph and nearest nodes.
+
+        Parameters
+        ----------
+
+        graph: nx.Graph
+            Instance of the graph.
+        nearest_nodes: list[str]
+            List of nodes to keep.
+
+        Returns
+        -------
+        nx.Graph
+        """
+        nx.set_edge_attributes(graph, 1, "weight")
+        return ax.steiner_tree(
+            graph,
+            nearest_nodes,
+            method="mehlhorn",
+        )
+
+    @abstractmethod
+    def build_secondary_network(self, group: GroupModel) -> nx.Graph:
+        """Internal method to build secondary network.
+
+        Parameters
+        ----------
+        group: GroupModel
+            Group for which the secondary network is to be built.
+
+        Returns
+        -------
+        nx.Graph
+
+        """
+
+    @abstractmethod
+    def build_primary_network(self) -> nx.Graph:
+        """Internal method for building primary network.
+
+        Returns
+        -------
+        nx.Graph
+        """
+
+    def _get_node_assets_mapper(
+        self, asset_nodes: dict[VALID_NODE_TYPES, list[str]]
+    ) -> dict[str, set[VALID_NODE_TYPES]]:
+        """Get set of asset types for nodes.
+
+
+        Parameters
+        ----------
+
+        asset_nodes: dict[VALID_NODE_TYPES, list[str]]
+            Dictionary mapping between node types and list of graph nodes.
+
+        Returns
+        -------
+
+        dict[str, set[VALID_NODE_TYPES]]
+            Dictionary mapping between node name and set of assets
+            connected to that node.
+        """
+
+        nodes_asset_mapper: dict[str, set[VALID_NODE_TYPES]] = defaultdict(set)
+        for asset_type, nodes in asset_nodes.items():
+            for node in nodes:
+                nodes_asset_mapper[node].add(asset_type)
+        return dict(nodes_asset_mapper)
+
+    @staticmethod
+    def _explode_transformer_node(
+        graph: DistributionGraph, transformer_nodes: list[str]
+    ) -> DistributionGraph:
+        """Internal method to explode transformer node to an edge.
+        This updates graph in place.
+
+        Parameters
+        ----------
+        graph: DistributionGraph
+            Instance of the distribution graph.
+
+        transformer_nodes: list[str]
+            List of transformer node names.
+
+        """
+
+        dfs_tree = graph.get_dfs_tree()
+        for node in set(transformer_nodes):
+            node_obj = graph.get_node(node)
+            new_node = NodeModel(name=f"{node_obj.name}_ht", location=node_obj.location)
+            graph.add_node(new_node)
+            predecessors = list(dfs_tree.predecessors(node))
+            edges = [graph.get_edge(pred, node) for pred in predecessors]
+            for pred, edge_data in zip(predecessors, edges):
+                graph.add_edge(pred, new_node.name, edge_data=edge_data)
+                graph.remove_edge(node, pred)
+
+    def _get_distribution_graph_from_network(
+        self,
+        graph: nx.Graph,
+        transformer_nodes: list[str],
+        asset_nodes: dict[VALID_NODE_TYPES, list[str]],
+    ) -> DistributionGraph:
+        """Internal method to convert networkx graph to Distribution Graph.
+
+        Parameters
+        ----------
+
+        graph: nx.Graph
+            Instance of networkx graph.
+        load_nodes: list[str]
+            List of load nodes in the graph.
+        asset_nodes: dict[VALID_NODE_TYPES, list[str]]
+
+        Returns
+        -------
+        DistributionGraph
+
+        """
+
+        dist_graph = DistributionGraph()
+
+        node_asset_mapper = self._get_node_assets_mapper(asset_nodes)
+        for edge in graph.edges:
+            for node in edge:
+                if dist_graph.has_node(node):
+                    continue
+                location = GeoLocation(graph.nodes[node]["x"], graph.nodes[node]["y"])
+                assets = node_asset_mapper.get(node)
+                dist_graph.add_node(
+                    NodeModel(name=node, location=location, assets=assets)
+                    if assets is not None
+                    else NodeModel(name=node, location=location)
+                )
+
+            dist_graph.add_edge(
+                *edge,
+                edge_data=EdgeModel(
+                    name=str(uuid.uuid4()),
+                    edge_type=DistributionBranch,
+                ),
+            )
+        return self._explode_transformer_node(dist_graph, transformer_nodes)
+
+    def get_distribution_graph(self) -> DistributionGraph:
+        """Method to return distribution graph.
+
+        Returns
+        -------
+        DistributionGraph
+        """
+        dist_network = nx.Graph(self.build_primary_network())
+        dist_network = nx.relabel_nodes(
+            dist_network, {node: str(node) for node in list(dist_network.nodes)}
+        )
+
+        substation_node = self._get_nearest_nodes(dist_network, [self.source_location])[0]
+        transformer_nodes = self._get_nearest_nodes(dist_network, [c.center for c in self.groups])
+        load_nodes = []
+        for tr_node, group in zip(transformer_nodes, self.groups):
+            logger.info(f"Building secondary for {group.center}: {tr_node}")
+
+            secondary_graph = self.build_secondary_network(group)
+            load_nodes += self._get_nearest_nodes(secondary_graph, group.points)
+            tr_location = GeoLocation(
+                dist_network.nodes[tr_node]["x"], dist_network.nodes[tr_node]["y"]
+            )
+            nearest_sec_node = self._get_nearest_nodes(secondary_graph, [tr_location])[0]
+            dist_network = nx.union(dist_network, secondary_graph)
+            dist_network.add_edge(nearest_sec_node, tr_node)
+
+        return self._get_distribution_graph_from_network(
+            dist_network,
+            transformer_nodes,
+            asset_nodes={
+                DistributionVoltageSource: [substation_node],
+                DistributionLoad: load_nodes,
+            },
+        )

@@ -22,3 +22,12 @@ class ParcelModel(BaseModel):
     geometry: Annotated[
         list[GeoLocation] | GeoLocation, Field(..., description="Geo location for the parcel.")
     ]
+
+
+class GroupModel(BaseModel):
+    """Interface for group model."""
+
+    center: Annotated[GeoLocation, Field(..., description="Centre of the cluster.")]
+    points: Annotated[
+        list[GeoLocation], Field(..., description="List of points that belong to this cluster.")
+    ]
