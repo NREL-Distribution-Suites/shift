@@ -24,6 +24,7 @@ dependencies = [
   "osmnx",
   "scikit-learn",
   "plotly",
+  "geopy",
   "gdm @ git+https://github.nrel.gov/CADET/grid-data-models.git",
 ]
 
