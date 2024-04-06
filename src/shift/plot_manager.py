@@ -1,5 +1,4 @@
 import plotly.graph_objects as go
-from shift.update_plot_layout import update_plot_layout
 from shift.data_model import GeoLocation
 
 
@@ -18,20 +17,44 @@ COLORS = [
 
 
 class PlotManager:
-    """Class for managing plotly plots."""
+    """Class for managing plotly plots.
 
-    def __init__(self, centre: GeoLocation | None = None):
+    Parameters
+    ----------
+
+    center: GeoLocation
+        Centre of the map. Optional defaults to GeoLocation(0,0)
+
+
+    Examples
+    --------
+
+    Creating an instance of the plot manager.
+
+    >>> plt_instance = PlotManager()
+
+    Adding plot the plot manager.
+
+    >>> plt_instance.add_plot([GeoLocation(0,0),
+        GeoLocation(0.0001, 0.0001)], name="plot1")
+
+    Displaying the plot in the browser.
+
+    >>> plt.instance.show()
+    """
+
+    def __init__(self, center: GeoLocation | None = None):
         """Constructor for managing plots with plotly."""
-        self.figure = go.Figure()
-        self.centre = centre
-        self.color_index = 0
+        self._figure = go.Figure()
+        self.center = GeoLocation(0, 0) if center is None else center
+        self._color_index = 0
 
     def _get_color(self):
         """Internal method to retrive color for plot dynamically."""
-        if self.color_index >= len(COLORS):
-            self.color_index = 0
-        self.color_index += 1
-        return COLORS[self.color_index - 1]
+        if self._color_index >= len(COLORS):
+            self._color_index = 0
+        self._color_index += 1
+        return COLORS[self._color_index - 1]
 
     def add_plot(
         self,
@@ -50,6 +73,12 @@ class PlotManager:
             Name of the plot
         scatter_mode: bool, optional
             Set to False if you want to plot lines. Defaults to True.
+
+        Examples
+        --------
+
+        >>> plt_instance.add_plot([GeoLocation(0,0),
+            GeoLocation(0.0001, 0.0001)], name="plot1")
         """
 
         if isinstance(geometries[0], GeoLocation):
@@ -61,7 +90,7 @@ class PlotManager:
                 latitudes.extend([loc.latitude for loc in geometry] + [None])
                 longitudes.extend([loc.longitude for loc in geometry] + [None])
 
-        self.figure.add_trace(
+        self._figure.add_trace(
             go.Scattermapbox(
                 lon=longitudes,
                 lat=latitudes,
@@ -73,6 +102,60 @@ class PlotManager:
         )
 
     def show(self):
-        """Method to show the graph."""
-        update_plot_layout(self.figure, self.centre.latitude, self.centre.longitude)
-        self.figure.show()
+        """Method to show the plot."""
+        self._update_plot_layout(self._figure, self.center.latitude, self.center.longitude)
+        self._figure.show()
+
+    @staticmethod
+    def _update_plot_layout(
+        figure: go.Figure,
+        centre_latitude: float,
+        centre_longitude: float,
+        style: str = "carto-positron",
+        zoom: int = 15,
+        access_token: str | None = None,
+        margin: dict | None = None,
+    ):
+        """Function to update plot layout.
+
+        Parameters
+        ----------
+
+        figure: go.Figure
+            Instance of plotly graph objects figure.
+        centre_latitude: float
+            Longitude location of map center.
+        centre_longitude: float
+            Longitude location of map center.
+        style: str
+            Valid mapbox style https://plotly.com/python/mapbox-layers/,
+            defaults to `carto-positron`.
+        zoom: int
+            Zoom level for map, defaults to 15.
+        access_token: str | None, optional
+            Mapbox access token.
+        margin: dict | None, optional
+            Map margin
+
+
+        Examples
+        --------
+
+        >>> fig = go.Figure()
+        >>> update_plot_layout(fig, 0, 0)
+
+        """
+        if margin is None:
+            margin = {"r": 0, "t": 0, "l": 0, "b": 0}
+        figure.update_layout(margin=margin)
+        figure.update_mapboxes(
+            {
+                "accesstoken": access_token,
+                "style": style,
+                "center": {
+                    "lon": centre_longitude,
+                    "lat": centre_latitude,
+                },
+                "zoom": zoom,
+            }
+        )

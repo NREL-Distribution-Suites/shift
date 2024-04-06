@@ -27,7 +27,7 @@ GET_PARCEL_INPUTS = [
 @pytest.fixture
 def mock_ox():
     """Fixture for mocking osmnx package."""
-    with mock.patch("shift.parcel.openstreet.ox") as mock_ox:
+    with mock.patch("shift.openstreet_parcels.ox") as mock_ox:
         yield mock_ox
 
 

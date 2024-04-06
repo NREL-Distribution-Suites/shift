@@ -1,6 +1,6 @@
-# Clustering
+# Get groups using kmeans
 
 
 ```{eval-rst}
-.. autofunction:: shift.cluster.get_kmeans_clusters
+.. autofunction:: shift.get_kmeans_clusters
 ```

@@ -2,6 +2,10 @@ class VsourceNodeAlreadyExists(Exception):
     """Raise this error if vsource node already exists."""
 
 
+class VsourceNodeDoesNotExists(Exception):
+    """Raise this error if vsource node already exists."""
+
+
 class NodeAlreadyExists(Exception):
     """Raise this error if node already exists."""
 
@@ -16,3 +20,11 @@ class InvalidAssetPhase(Exception):
 
 class InvalidInputError(Exception):
     """Raise this error if invalid input is passed."""
+
+
+class NodeDoesNotExist(Exception):
+    """Raise this error if node does not exist in the graph."""
+
+
+class EdgeDoesNotExist(Exception):
+    """Raise this error if you are querying edge that does not exist."""

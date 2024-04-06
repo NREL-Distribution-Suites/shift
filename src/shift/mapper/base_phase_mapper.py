@@ -3,17 +3,16 @@ from functools import cached_property
 
 from gdm import Phase
 
-from shift.distribution_graph import DistributionGraph, VALID_NODE_TYPES
+from shift.graph.distribution_graph import DistributionGraph, VALID_NODE_TYPES
 from shift.exceptions import InvalidAssetPhase
 
 
-class PhaseMapper(ABC):
+class BasePhaseMapper(ABC):
     """Abstract class for mapping getting phases for nodes, edges and assets.
 
     Subclasses must implement following methods.
     * get_node_phase_mapping
     * get_asset_phase_mapping
-    * get_edge_phase_mapping
 
     Parameters
     ----------
@@ -64,16 +63,4 @@ class PhaseMapper(ABC):
 
         dict[str, dict[VALID_NODE_TYPES, set[Phase]]]
             Dict of dicts mapping nodename to asset type to list of phases.
-        """
-
-    @abstractmethod
-    @cached_property
-    def get_edge_phase_mapping(self) -> dict[str, set[Phase]]:
-        """Returns edge to phase mapping.
-
-        Returns
-        -------
-
-        dict[str, set[Phase]]
-            Dictionary mapping edge name to list of phases.
         """
