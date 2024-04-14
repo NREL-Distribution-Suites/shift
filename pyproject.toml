@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "nrel-shift"
 dynamic = ["version"]
-description = ''
+description = "Framework for developing synthetic distribution feeder model."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "BSD-3-clause"
@@ -15,37 +15,30 @@ authors = [
   { name = "Erik Pohl", email = "Erik.Pohl@nrel.gov" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
 ]
 dependencies = [
   "osmnx",
   "scikit-learn",
   "plotly",
   "geopy",
-  "gdm @ git+https://github.nrel.gov/CADET/grid-data-models.git",
+  "grid-data-models",
+  "importlib-metadata",
 ]
 
 [project.optional-dependencies]
-dev = [
-  "pre-commit",
-  "pytest",
-  "ruff",
-  "sphinx",
-  "pydata-sphinx-theme",
-  "myst-parser",
-  "autodoc_pydantic",
-]
+dev = ["pre-commit", "pytest", "ruff"]
+doc = ["sphinx", "pydata-sphinx-theme", "myst-parser", "autodoc_pydantic"]
 
 [project.urls]
-Documentation = "https://github.com/unknown/nrel-shift#readme"
-Issues = "https://github.com/unknown/nrel-shift/issues"
-Source = "https://github.com/unknown/nrel-shift"
+Documentation = "https://github.com/NREL-Distribution-Suites/shift#readme"
+Issues = "https://github.com/NREL-Distribution-Suites/shift/issues"
+Source = "https://github.com/NREL-Distribution-Suites/shift"
 
 [tool.hatch.version]
-path = "src/shift/__about__.py"
+path = "src/shift/version.py"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
