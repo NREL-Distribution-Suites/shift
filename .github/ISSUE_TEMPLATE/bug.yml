@@ -1,0 +1,59 @@
+name: Shift Bug 🐛
+description: Report a bug or unexpected behaviour in shift.
+labels: [bug, pending]
+
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for contributing to shift. 👋
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preliminary Checks
+      description: |
+        Making sure you need to submit a bug issue.
+      options:
+        - label: I have searched existing issues for a duplicate issue and I'm sure this is new.
+          required: True
+        - label: I have read and followed [the docs](https://nrel-distribution-suites.github.io/shift) and still think this is a bug.
+          required: True
+        - label: >
+            I am certain that this is an issue with shift
+            (not my code or another library such as [grid-data-models](https://github.com/NREL-Distribution-Suites/grid-data-models))
+          required: True
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Please explain in details what you are seeing and what you expect to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Sample Code
+      description: >
+        If applicable, please add self contained minimal reproducible example code to demonstrate the bug.
+      placeholder: |
+        import shift
+
+        ...
+      render: python
+  - type: textarea
+    id: version
+    attributes:
+      label: Python, Shift
+      description: |
+        Which version of python & shift are you using ?
+
+        Please run the following command and copy the output below:
+        ```bash
+        python -c "import shift.version; print(shift.version.version_summary())"
+        ```
+      render: Text
+    validations:
+      required: True
