@@ -2,8 +2,10 @@ from typing import Annotated, Callable, Iterable, Type, Optional
 import copy
 
 import networkx as nx
-from pydantic import BaseModel, Field
-from shift.data_model import GeoLocation
+from pydantic import BaseModel, Field, model_validator
+from gdm.quantities import PositiveDistance
+from infrasys import Location
+
 from shift.exceptions import (
     EdgeAlreadyExists,
     EdgeDoesNotExist,
@@ -40,7 +42,7 @@ class NodeModel(BaseModel):
     """Interface for node model."""
 
     name: Annotated[str, Field(..., description="Name of the node.")]
-    location: Annotated[GeoLocation, Field(..., description="Location of node.")]
+    location: Annotated[Location, Field(..., description="Location of node.")]
     assets: Annotated[
         Optional[set[VALID_NODE_TYPES]],
         Field({}, description="Set of asset types attached to node."),
@@ -52,6 +54,18 @@ class EdgeModel(BaseModel):
 
     name: Annotated[str, Field(..., description="Name of the node.")]
     edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
+    length: Annotated[PositiveDistance | None, Field(..., description="Length of edge.")]
+
+    @model_validator
+    def validate_fields(self):
+        if self.edge_type == DistributionTransformer and not self.length is not None:
+            msg = f"{self.length=} must be None for {self.edge_type=}"
+            raise ValueError(msg)
+
+        if self.edge_type == DistributionBranch and self.length is None:
+            msg = f"{self.length=} must not be None for {self.edge_type=}"
+            raise ValueError(msg)
+        return self
 
 
 class DistributionGraph:
@@ -100,6 +114,8 @@ class DistributionGraph:
     def __init__(self):
         self._graph = nx.Graph()
         self.vsource_node = None
+        self._node_data_ppty = "node_data"
+        self._edge_data_ppty = "edge_data"
 
     def add_node(self, node: NodeModel):
         """Adds node to the graph.
@@ -216,7 +232,7 @@ class DistributionGraph:
             msg = f"{node_name=} does not exist in the graph."
             raise NodeDoesNotExist(msg)
 
-        return self._graph.nodes[node_name]["node_data"]
+        return self._graph.nodes[node_name][self._node_data_ppty]
 
     def get_nodes(
         self, filter_func: Callable[[NodeModel], bool] | None = None
@@ -239,7 +255,7 @@ class DistributionGraph:
         >>> dgraph.get_nodes()
         """
         for node in self._graph.nodes:
-            node_obj = self._graph.nodes[node]["node_data"]
+            node_obj = self._graph.nodes[node][self._node_data_ppty]
             if (filter_func and filter_func(node_obj)) or filter_func is None:
                 yield node_obj
 
@@ -321,7 +337,23 @@ class DistributionGraph:
         if not self._graph.has_edge(from_node, to_node):
             msg = f"Edge between {from_node=} and {to_node=} does not exist."
             raise EdgeDoesNotExist(msg)
-        return self._graph.get_edge_data(from_node, to_node)["edge_data"]
+        return self._graph.get_edge_data(from_node, to_node)[self._edge_data_ppty]
+
+    def get_edges(self) -> Iterable[tuple[str, str, EdgeModel]]:
+        """Returns interator for all edges in the graph.
+
+        Returns
+        -------
+        Iterable[tuple[str, str, EdgeModel]]
+
+
+        Examples
+        --------
+
+        >>> dgraph.get_edges()
+        """
+        for edge in self._graph.edges:
+            yield tuple([edge[0], edge[1], self._graph.get_edge_data(*edge)[self._edge_data_ppty]])
 
     def get_undirected_graph(self) -> nx.Graph:
         """Method to return undirected graph.

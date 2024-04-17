@@ -1,11 +1,14 @@
 from abc import abstractmethod
 from collections import defaultdict
 import uuid
-from infrasys.quantities import Distance
+
 import networkx as nx
 from networkx.algorithms import approximation as ax
 from loguru import logger
 from gdm import DistributionBranch, DistributionVoltageSource, DistributionLoad
+from infrasys.quantities import Distance
+from infrasys import Location
+
 
 from shift.graph.base_graph_builder import BaseGraphBuilder
 from shift.graph.distribution_graph import (
@@ -238,7 +241,9 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
             for node in edge:
                 if dist_graph.has_node(node):
                     continue
-                location = GeoLocation(graph.nodes[node]["x"], graph.nodes[node]["y"])
+                location = Location(
+                    x=graph.nodes[node]["x"], y=graph.nodes[node]["y"], crs="epsg:4326"
+                )
                 assets = node_asset_mapper.get(node)
                 dist_graph.add_node(
                     NodeModel(name=node, location=location, assets=assets)

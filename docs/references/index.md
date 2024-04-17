@@ -13,6 +13,25 @@ openstreet_graph
 ```{toctree}
 :hidden: true
 :maxdepth: 2
+:caption: Mappers
+
+phase_mapper
+voltage_mapper
+equipment_mapper
+```
+
+```{toctree}
+:hidden: true
+:maxdepth: 2
+:caption: System Builder
+
+system_builder
+```
+
+
+```{toctree}
+:hidden: true
+:maxdepth: 2
 :caption: Openstreet Data
 
 openstreet_parcel

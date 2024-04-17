@@ -30,7 +30,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
-source_suffix = [".md"]
+source_suffix = [".md", ".rst"]
 
 autodoc_member_order = "bysource"
 autoclass_content = "both"

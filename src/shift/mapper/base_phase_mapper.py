@@ -8,11 +8,11 @@ from shift.exceptions import InvalidAssetPhase
 
 
 class BasePhaseMapper(ABC):
-    """Abstract class for mapping getting phases for nodes, edges and assets.
+    """Abstract class for getting phase mappings for nodes and assets.
 
     Subclasses must implement following methods.
-    * get_node_phase_mapping
-    * get_asset_phase_mapping
+    * node_phase_mapping
+    * asset_phase_mapping
 
     Parameters
     ----------
@@ -32,8 +32,8 @@ class BasePhaseMapper(ABC):
 
     def _validate_asset_phases(self):
         """Internal method to validate asset phases with respect to node phases."""
-        node_phases = self.get_node_phase_mapping()
-        for node, asset_map in self.get_asset_phase_mapping().items():
+        node_phases = self.node_phase_mapping
+        for node, asset_map in self.asset_phase_mapping.items():
             phs = set([el for item in asset_map.values() for el in item])
             if not phs.issubset(node_phases[node]):
                 msg = f"{phs=} is not subset of {node_phases[node]=}"
@@ -41,7 +41,7 @@ class BasePhaseMapper(ABC):
 
     @abstractmethod
     @cached_property
-    def get_node_phase_mapping(
+    def node_phase_mapping(
         self,
     ) -> dict[str, set[Phase]]:
         """Returns node to phase mapping dictionary.
@@ -55,7 +55,7 @@ class BasePhaseMapper(ABC):
 
     @abstractmethod
     @cached_property
-    def get_asset_phase_mapping(self) -> dict[str, dict[VALID_NODE_TYPES, set[Phase]]]:
+    def asset_phase_mapping(self) -> dict[str, dict[VALID_NODE_TYPES, set[Phase]]]:
         """Returns asset to phase mapping.
 
         Returns
