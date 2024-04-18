@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from gdm import (
     DistributionSystem,
     DistributionBus,
@@ -19,7 +21,12 @@ from gdm import (
     DistributionTransformerEquipment,
 )
 
-from shift.graph.distribution_graph import DistributionGraph, EdgeModel
+from shift.graph.distribution_graph import (
+    VALID_NODE_TYPES,
+    DistributionGraph,
+    EdgeModel,
+    NodeModel,
+)
 from shift.mapper.base_equipment_mapper import BaseEquipmentMapper
 from shift.mapper.base_phase_mapper import BasePhaseMapper
 from shift.mapper.base_voltage_mapper import BaseVoltageMapper
@@ -71,17 +78,58 @@ class DistributionSystemBuilder:
         self._system = DistributionSystem(name=name, auto_add_composed_components=True)
         self._build_system()
 
-    def _add_bus(self):
-        """Internal method to add bus in the system."""
+    def _build_system(self):
+        """Internal method to build distribution system."""
         for node in self.dist_graph.get_nodes():
-            bus = DistributionBus(
-                name=node.name,
-                phases=self.phase_mapper.node_phase_mapping[node.name],
-                coordinate=node.location,
-                nominal_voltage=self.voltage_mapper.node_voltage_mapping[node.name],
-                voltage_type=VoltageTypes.LINE_TO_GROUND,
-            )
-            self._system.add_component(bus)
+            self._add_bus(node)
+            for asset in node.assets:
+                self._add_asset(node.name, asset)
+
+        for from_node, to_node, edge_data in self.dist_graph.get_edges():
+            equipment = self.equipment_mapper.edge_equipment_mapping[edge_data.name]
+            if type(equipment) != EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type):
+                msg = (
+                    f"{equipment=} is not supported for {edge_data=}"
+                    f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
+                )
+                raise NotImplementedError(msg)
+            if edge_data.edge_type == DistributionBranch:
+                self._add_branch(from_node, to_node, edge_data.edge_type, edge_data.name)
+            elif edge_data.edge_type == DistributionTransformer:
+                self._add_transformer(from_node, to_node, edge_data.edge_type, edge_data.name)
+            else:
+                msg = f"{edge_data.edge_type=} not supported. {edge_data=}"
+                raise NotImplementedError(msg)
+
+    def _add_asset(self, bus_name: str, asset_type: VALID_NODE_TYPES):
+        """Internal method to add asset to a bus.
+
+        Parameters
+        ----------
+
+        bus_name: str
+            Name of the bus.
+        asset_type: VALID_NODE_TYPES
+            Asset type.
+        """
+        asset_obj = asset_type(
+            name=str(uuid4()),
+            bus=self._system.get_component(DistributionBus, bus_name),
+            phases=self.phase_mapper.asset_phase_mapping[bus_name][asset_type],
+            equipment=self.equipment_mapper.node_asset_equipment_mapping[bus_name][asset_type],
+        )
+        self._system.add_component(asset_obj)
+
+    def _add_bus(self, node_obj: NodeModel):
+        """Internal method to add bus in the system."""
+        bus = DistributionBus(
+            name=node_obj.name,
+            phases=self.phase_mapper.node_phase_mapping[node_obj.name],
+            coordinate=node_obj.location,
+            nominal_voltage=self.voltage_mapper.node_voltage_mapping[node_obj.name],
+            voltage_type=VoltageTypes.LINE_TO_GROUND,
+        )
+        self._system.add_component(bus)
 
     def _add_branch(self, from_node: str, to_node: str, edge_data: EdgeModel):
         """Internal method to add branch.
@@ -134,26 +182,6 @@ class DistributionSystemBuilder:
             equipment=self.equipment_mapper.edge_equipment_mapping[edge_data.name],
         )
         self._system.add_component(edge)
-
-    def _build_system(self):
-        """Internal method to build distribution system."""
-        self._add_bus()
-
-        for from_node, to_node, edge_data in self.dist_graph.get_edges():
-            equipment = self.equipment_mapper.edge_equipment_mapping[edge_data.name]
-            if type(equipment) != EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type):
-                msg = (
-                    f"{equipment=} is not supported for {edge_data=}"
-                    f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
-                )
-                raise NotImplementedError(msg)
-            if edge_data.edge_type == DistributionBranch:
-                self._add_branch(from_node, to_node, edge_data.edge_type, edge_data.name)
-            elif edge_data.edge_type == DistributionTransformer:
-                self._add_transformer(from_node, to_node, edge_data.edge_type, edge_data.name)
-            else:
-                msg = f"{edge_data.edge_type=} not supported. {edge_data=}"
-                raise NotImplementedError(msg)
 
     def get_system(self) -> DistributionSystem:
         """Method to return distribution system.
