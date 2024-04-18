@@ -22,7 +22,7 @@ class BasePhaseMapper(ABC):
     """
 
     def __init__(self, graph: DistributionGraph):
-        self._graph = graph
+        self.graph = graph
         self._validate_asset_phases()
         self._validate_node_phases()
 
@@ -63,4 +63,16 @@ class BasePhaseMapper(ABC):
 
         dict[str, dict[VALID_NODE_TYPES, set[Phase]]]
             Dict of dicts mapping nodename to asset type to list of phases.
+        """
+
+    @abstractmethod
+    @cached_property
+    def transformer_phase_mapping(
+        self,
+    ) -> dict[str, set[Phase]]:
+        """Returns transformer phase mapping.
+
+        Returns
+        -------
+        dict[str, set[Phase]]
         """

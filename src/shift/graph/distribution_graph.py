@@ -340,8 +340,15 @@ class DistributionGraph:
             raise EdgeDoesNotExist(msg)
         return self._graph.get_edge_data(from_node, to_node)[self._edge_data_ppty]
 
-    def get_edges(self) -> Iterable[tuple[str, str, EdgeModel]]:
+    def get_edges(
+        self, filter_func: Callable[[EdgeModel], bool] = None
+    ) -> Iterable[tuple[str, str, EdgeModel]]:
         """Returns interator for all edges in the graph.
+
+        Parameters
+        ----------
+        filter_func: Callable[[EdgeModel], bool]
+            Optional filter function.
 
         Returns
         -------
@@ -354,7 +361,10 @@ class DistributionGraph:
         >>> dgraph.get_edges()
         """
         for edge in self._graph.edges:
-            yield tuple([edge[0], edge[1], self._graph.get_edge_data(*edge)[self._edge_data_ppty]])
+            edge_data = self._graph.get_edge_data(*edge)[self._edge_data_ppty]
+            if filter_func and not filter_func(edge_data):
+                continue
+            yield tuple([edge[0], edge[1], edge_data])
 
     def get_undirected_graph(self) -> nx.Graph:
         """Method to return undirected graph.

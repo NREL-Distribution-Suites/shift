@@ -1,6 +1,7 @@
 import networkx as nx
 
 from shift.data_model import GeoLocation, ParcelModel
+from shift.graph.distribution_graph import DistributionGraph
 from shift.plot_manager import PlotManager
 
 
@@ -51,7 +52,7 @@ def add_parcels_to_plots(
 
 
 def add_xy_network_to_plots(graph: nx.Graph, plot_manager: PlotManager, name: str = "Graph nodes"):
-    """Method to plot network.
+    """Function to plot xy network.
 
     Assumes longitude is availabe as `x` and latitude is
     available as `y`.
@@ -83,6 +84,35 @@ def add_xy_network_to_plots(graph: nx.Graph, plot_manager: PlotManager, name: st
     geometries = [
         [GeoLocation(node_data[node]["x"], node_data[node]["y"]) for node in edge[:2]]
         for edge in graph.edges
+    ]
+    plot_manager.add_plot(
+        geometries=geometries,
+        name=name,
+        mode="lines+markers",
+    )
+
+
+def add_distribution_graph(
+    graph: DistributionGraph, plot_manager: PlotManager, name: str = "Graph nodes"
+):
+    """Function to plot distribution graph.
+
+    Parameters
+    ----------
+
+    graph: DistributionGraph
+        Instance of the `DistributionGraph`.
+    plot_manager: PlotManager
+        PlotManager Instance.
+    name: str
+        Name of the plot.
+    """
+    geometries = [
+        [
+            GeoLocation(node.location.x, node.location.y)
+            for node in [graph.get_node(from_node), graph.get_node(to_node)]
+        ]
+        for from_node, to_node, _ in graph.get_edges()
     ]
     plot_manager.add_plot(
         geometries=geometries,

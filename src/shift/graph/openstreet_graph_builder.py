@@ -253,18 +253,18 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         for edge in graph.edges:
             locs: list[Location] = []
             for node in edge:
-                if dist_graph.has_node(node):
-                    continue
                 location = Location(
                     x=graph.nodes[node]["x"], y=graph.nodes[node]["y"], crs="epsg:4326"
                 )
+                locs.append(location)
+                if dist_graph.has_node(node):
+                    continue
                 assets = node_asset_mapper.get(node)
                 dist_graph.add_node(
                     NodeModel(name=node, location=location, assets=assets)
                     if assets is not None
                     else NodeModel(name=node, location=location)
                 )
-                locs.append(location)
 
             dist_graph.add_edge(
                 *edge,
@@ -276,7 +276,8 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
                     ),
                 ),
             )
-        return self._explode_transformer_node(dist_graph, transformer_nodes)
+        self._explode_transformer_node(dist_graph, transformer_nodes)
+        return dist_graph
 
     def get_distribution_graph(self) -> DistributionGraph:
         """Method to return distribution graph.

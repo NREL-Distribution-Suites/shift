@@ -19,6 +19,7 @@ from gdm import (
     MatrixImpedanceRecloserEquipment,
     MatrixImpedanceSwitchEquipment,
     DistributionTransformerEquipment,
+    Phase,
 )
 
 from shift.graph.distribution_graph import (
@@ -171,14 +172,20 @@ class DistributionSystemBuilder:
         edge_data: EdgeModel
             Edge data object.
         """
+        from_bus_phase = self.phase_mapper.node_phase_mapping[from_node]
+        to_bus_phase = self.phase_mapper.node_phase_mapping[to_node]
+        tr_phase = self.phase_mapper.transformer_phase_mapping[edge_data.name]
+
+        from_wdg_phase = from_bus_phase if set([Phase.S1, Phase.S2]) & from_bus_phase else tr_phase
+        to_wdg_phase = to_bus_phase if set([Phase.S1, Phase.S2]) & to_bus_phase else tr_phase
+
         edge = edge_data.edge_type(
             name=edge_data.name,
             buses=[
                 self._system.get_component(DistributionBus, from_node),
                 self._system.get_component(DistributionBus, to_node),
             ],
-            phases=self.phase_mapper.node_phase_mapping[from_node]
-            & self.phase_mapper.node_phase_mapping[to_node],
+            winding_phases=[from_wdg_phase, to_wdg_phase],
             equipment=self.equipment_mapper.edge_equipment_mapping[edge_data.name],
         )
         self._system.add_component(edge)
