@@ -5,6 +5,32 @@ import networkx as nx
 from geopy.distance import geodesic
 import numpy as np
 from infrasys.quantities import Distance
+from gdm.quantities import PositiveDistance
+
+from shift.data_model import GeoLocation
+
+
+def get_distance_between_points(
+    from_point: GeoLocation, to_point: GeoLocation
+) -> PositiveDistance:
+    """Returns distance betwee two geo points.
+
+    Parameters
+    ----------
+
+    from_point: GeoLocation
+        From point
+    to_point: GeoLocation
+        To point.
+
+    Returns
+    -------
+    PositiveDistance
+    """
+
+    return PositiveDistance(
+        geodesic(*[reversed(point) for point in [from_point, to_point]]).m, "m"
+    )
 
 
 def split_network_edges(graph: nx.Graph, split_length: Distance) -> nx.Graph:
@@ -37,17 +63,17 @@ def split_network_edges(graph: nx.Graph, split_length: Distance) -> nx.Graph:
     graph_nodes = dict(graph.nodes(data=True))
     split_length_m = split_length.to("m").magnitude
     for edge in graph.edges():
-        edge_length_m = geodesic(
-            *[(graph_nodes[node]["y"], graph_nodes[node]["x"]) for node in edge]
-        ).m
+        from_point = GeoLocation(graph_nodes[edge[0]]["x"], graph_nodes[edge[0]]["y"])
+        to_point = GeoLocation(graph_nodes[edge[1]]["x"], graph_nodes[edge[1]]["y"])
+        edge_length_m = get_distance_between_points(from_point, to_point).to("m").magnitude
         if edge_length_m <= split_length_m:
             continue
 
         sliced_graph.remove_edge(*edge)
         edge_slices = [x / edge_length_m for x in np.arange(1, edge_length_m, split_length_m)]
 
-        x1, y1 = (graph_nodes[edge[0]]["x"], graph_nodes[edge[0]]["y"])
-        x2, y2 = (graph_nodes[edge[1]]["x"], graph_nodes[edge[1]]["y"])
+        x1, y1 = (from_point.longitude, from_point.latitude)
+        x2, y2 = (to_point.longitude, to_point.latitude)
 
         sliced_nodes = []
         for slice_ in edge_slices:

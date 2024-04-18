@@ -2,7 +2,7 @@ from typing import Annotated, Callable, Iterable, Type, Optional
 import copy
 
 import networkx as nx
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from gdm.quantities import PositiveDistance
 from infrasys import Location
 
@@ -52,13 +52,14 @@ class NodeModel(BaseModel):
 class EdgeModel(BaseModel):
     """Interface for edge model."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     name: Annotated[str, Field(..., description="Name of the node.")]
     edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
-    length: Annotated[PositiveDistance | None, Field(..., description="Length of edge.")]
+    length: Annotated[PositiveDistance | None, Field(None, description="Length of edge.")]
 
-    @model_validator
+    @model_validator(mode="after")
     def validate_fields(self):
-        if self.edge_type == DistributionTransformer and not self.length is not None:
+        if self.edge_type == DistributionTransformer and self.length is not None:
             msg = f"{self.length=} must be None for {self.edge_type=}"
             raise ValueError(msg)
 

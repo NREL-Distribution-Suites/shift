@@ -5,7 +5,12 @@ import uuid
 import networkx as nx
 from networkx.algorithms import approximation as ax
 from loguru import logger
-from gdm import DistributionBranch, DistributionVoltageSource, DistributionLoad
+from gdm import (
+    DistributionBranch,
+    DistributionVoltageSource,
+    DistributionLoad,
+    DistributionTransformer,
+)
 from infrasys.quantities import Distance
 from infrasys import Location
 
@@ -19,6 +24,7 @@ from shift.graph.distribution_graph import (
 )
 from shift.data_model import GeoLocation, GroupModel
 from shift.utils.nearest_points import get_nearest_points
+from shift.utils.split_network_edges import get_distance_between_points
 
 
 class OpenStreetGraphBuilder(BaseGraphBuilder):
@@ -210,6 +216,13 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
             for pred, edge_data in zip(predecessors, edges):
                 graph.add_edge(pred, new_node.name, edge_data=edge_data)
                 graph.remove_edge(node, pred)
+            graph.add_edge(
+                node_obj.name,
+                new_node.name,
+                edge_data=EdgeModel(
+                    name=str(uuid.uuid4()), length=None, edge_type=DistributionTransformer
+                ),
+            )
 
     def _get_distribution_graph_from_network(
         self,
@@ -238,6 +251,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
 
         node_asset_mapper = self._get_node_assets_mapper(asset_nodes)
         for edge in graph.edges:
+            locs: list[Location] = []
             for node in edge:
                 if dist_graph.has_node(node):
                     continue
@@ -250,12 +264,16 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
                     if assets is not None
                     else NodeModel(name=node, location=location)
                 )
+                locs.append(location)
 
             dist_graph.add_edge(
                 *edge,
                 edge_data=EdgeModel(
                     name=str(uuid.uuid4()),
                     edge_type=DistributionBranch,
+                    length=get_distance_between_points(
+                        *[GeoLocation(loc.x, loc.y) for loc in locs]
+                    ),
                 ),
             )
         return self._explode_transformer_node(dist_graph, transformer_nodes)
