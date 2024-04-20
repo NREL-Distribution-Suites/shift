@@ -143,11 +143,15 @@ class DistributionGraph:
         if self._graph.has_node(node.name):
             msg = f"{node=} already exists in the graph."
             raise NodeAlreadyExists(msg)
-        if self.vsource_node is not None and DistributionVoltageSource in node.assets:
+        if (
+            self.vsource_node is not None
+            and node.assets
+            and DistributionVoltageSource in node.assets
+        ):
             msg = f"{self.vsource_node=} already exists. Cannot add {node=}"
             raise VsourceNodeAlreadyExists(msg)
         self._graph.add_node(node.name, node_data=node)
-        if DistributionVoltageSource in node.assets:
+        if node.assets and DistributionVoltageSource in node.assets:
             self.vsource_node = node.name
 
     def add_nodes(self, nodes: list[NodeModel]):

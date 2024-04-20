@@ -2,12 +2,17 @@ from enum import Enum
 from functools import cached_property, reduce
 from itertools import combinations, groupby
 import operator
+from typing import Literal
 
 from gdm import DistributionTransformer, Phase
 from pydantic import BaseModel, ConfigDict
 from gdm.quantities import PositiveApparentPower
 import numpy as np
 import networkx as nx
+from shift.exceptions import AllocationMappingError
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from infrasys import Location
+from networkx.algorithms.approximation import steiner_tree
 
 from shift.graph.distribution_graph import DistributionGraph, VALID_NODE_TYPES
 from shift.mapper.base_phase_mapper import BasePhaseMapper
@@ -30,6 +35,36 @@ class TransformerPhaseMapperModel(BaseModel):
     tr_name: str
     tr_type: TransformerTypes
     tr_capacity: PositiveApparentPower
+    location: Location
+
+
+def _get_allocations(names: list[str], labels: list[int], n_categories: int):
+    """Internal function to get allocations."""
+    allocations = [[] for _ in range(n_categories)]
+    for name, index in zip(names, labels):
+        allocations[index].append(name)
+    return allocations
+
+
+def agglomerative_allocations(
+    distances: list[list[float]], names: list[str], num_categories: int
+) -> list[list[str]]:
+    """Kmeans weighted allocation."""
+    aggc = AgglomerativeClustering(n_clusters=num_categories, linkage="ward")
+    aggc.fit(distances)
+    return _get_allocations(names, aggc.labels_, num_categories)
+
+
+def kmeans_allocations(
+    points: list[list[float]],
+    names: list[str],
+    num_categories: int,
+    weights: list[float] | None = None,
+) -> list[list[str]]:
+    """Kmeans weighted allocation."""
+    kmeans = KMeans(n_clusters=num_categories)
+    kmeans.fit(points, sample_weight=weights)
+    return _get_allocations(names, kmeans.labels_, num_categories)
 
 
 def greedy_allocations(weights: list[tuple[str, float]], num_categories: int) -> list[list[str]]:
@@ -43,6 +78,7 @@ def greedy_allocations(weights: list[tuple[str, float]], num_categories: int) ->
         min_sum_index = np.argmin(sums)
         sums[min_sum_index] += weight[1]
         allocations[min_sum_index].append(weight[0])
+
     return allocations
 
 
@@ -56,9 +92,16 @@ class BalancedPhaseMapper(BasePhaseMapper):
         Instance of the distribution graph.
     mapper: list[TransformerPhaseMapperModel]
         List of phase mapper models.
+    method: Literal["kmean", "greedy"]
+        Method used for allocation, optional, defaults to "kmeans".
     """
 
-    def __init__(self, graph: DistributionGraph, mapper: list[TransformerPhaseMapperModel]):
+    def __init__(
+        self,
+        graph: DistributionGraph,
+        mapper: list[TransformerPhaseMapperModel],
+        method: Literal["kmean", "greedy", "agglomerative"] = "agglomerative",
+    ):
         self.mapper = mapper
 
         missing_transformers = set([item.tr_name for item in self.mapper]) - set(
@@ -70,7 +113,19 @@ class BalancedPhaseMapper(BasePhaseMapper):
             msg = f"Missing transformers from mapping {missing_transformers=}"
             raise ValueError(msg)
         self._transformer_phase_mapping: dict[str, set[Phase]] = {}
+        self.method = method
         super().__init__(graph)
+
+    def _get_distance_matrix(self, tr_names: list[str]):
+        """Function to return distance matrix for list of transformers."""
+
+        selected_nodes = [
+            from_node
+            for from_node, _, _ in self.graph.get_edges(filter_func=lambda x: x.name in tr_names)
+        ]
+        G = self.graph.get_undirected_graph()
+        subgraph = steiner_tree(G, selected_nodes)
+        return nx.floyd_warshall_numpy(subgraph)
 
     def _get_nodes_by_edge_names(self, edge_names: list[str]) -> set[str]:
         """Internal method to get three phase nodes."""
@@ -114,9 +169,35 @@ class BalancedPhaseMapper(BasePhaseMapper):
         transformer_mapper: dict,
     ):
         """Internal method to update three phase nodes."""
-        allocations = greedy_allocations(
-            [(tr.tr_name, tr.tr_capacity.to("va").magnitude) for tr in trs], len(ht_phases)
-        )
+        trs = [el for el in trs]
+        tr_names = [tr.tr_name for tr in trs]
+        match self.method:
+            case "greedy":
+                allocations = greedy_allocations(
+                    [(tr.tr_name, tr.tr_capacity.to("va").magnitude) for tr in trs], len(ht_phases)
+                )
+            case "kmeans":
+                allocations = kmeans_allocations(
+                    points=[[tr.location.x, tr.location.y] for tr in trs],
+                    weights=[tr.tr_capacity.to("va").magnitude for tr in trs],
+                    names=tr_names,
+                    num_categories=len(ht_phases),
+                )
+            case "agglomerative":
+                allocations = agglomerative_allocations(
+                    distances=self._get_distance_matrix(tr_names),
+                    names=tr_names,
+                    num_categories=len(ht_phases),
+                )
+            case _:
+                msg = f"Invalid method supplied {self.method=}"
+                raise ValueError(msg)
+
+        allocated_trs = set([el for item in allocations for el in item])
+        if set(tr_names) != allocated_trs:
+            msg = f"Missing mapping for transformers: {tr_names -  allocated_trs}"
+            raise AllocationMappingError(msg)
+
         for allocation, phases in zip(allocations, ht_phases):
             for tr in allocation:
                 nodes = self._get_nodes_by_edge_names([tr])
@@ -141,7 +222,11 @@ class BalancedPhaseMapper(BasePhaseMapper):
             TransformerTypes.SPLIT_PHASE_PRIMARY_DELTA: [delta_phase_combinations, True],
             TransformerTypes.SINGLE_PHASE_PRIMARY_DELTA: [delta_phase_combinations, False],
         }
-        for tr_type, group in groupby(mapper, lambda x: x.tr_type):
+
+        def key_func(tr_: TransformerPhaseMapperModel):
+            return tr_.tr_type
+
+        for tr_type, group in groupby(sorted(mapper, key=key_func), key_func):
             if tr_type == TransformerTypes.THREE_PHASE:
                 self._update_three_phase_nodes(group, container, transformer_mapper)
             elif tr_type in type_to_input_mapper:
@@ -162,11 +247,14 @@ class BalancedPhaseMapper(BasePhaseMapper):
         for tr in mapper:
             head_node = self._get_head_node(tr.tr_name)
             tr_head_node_phase = container[head_node]
-            for node in nx.shortest_path(
-                self.graph.get_undirected_graph(),
-                source=head_node,
-                target=self.graph.vsource_node,
-            ):
+            shortest_path = reversed(
+                nx.shortest_path(
+                    self.graph.get_dfs_tree(),
+                    source=self.graph.vsource_node,
+                    target=head_node,
+                )
+            )
+            for node in shortest_path:
                 container[node] = reduce(
                     operator.or_,
                     [
@@ -174,8 +262,10 @@ class BalancedPhaseMapper(BasePhaseMapper):
                         tr_head_node_phase,
                     ],
                 )
+                if len(container[node]) > 3:
+                    breakpoint()
                 three_phase = {Phase.A, Phase.B, Phase.C}
-                two_phase_sets = list(combinations(three_phase, 2))
+                two_phase_sets = list([set(el) for el in combinations(three_phase, 2)])
                 if container[node] in two_phase_sets:
                     container[node] = three_phase
 

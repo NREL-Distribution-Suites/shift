@@ -28,3 +28,7 @@ class NodeDoesNotExist(Exception):
 
 class EdgeDoesNotExist(Exception):
     """Raise this error if you are querying edge that does not exist."""
+
+
+class AllocationMappingError(Exception):
+    """Raise this error of allocation mapping is incorrect."""

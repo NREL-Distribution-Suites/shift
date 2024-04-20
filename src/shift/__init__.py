@@ -22,3 +22,4 @@ from shift.mapper.base_phase_mapper import BasePhaseMapper
 from shift.mapper.base_voltage_mapper import BaseVoltageMapper
 from shift.system_builder import DistributionSystemBuilder
 from shift.mapper.balanced_phase_mapper import BalancedPhaseMapper, TransformerTypes
+from shift.openstreet_parcels import convert_buildings_to_parcel

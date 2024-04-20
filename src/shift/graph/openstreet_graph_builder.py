@@ -293,7 +293,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
 
         substation_node = self._get_nearest_nodes(dist_network, [self.source_location])[0]
         transformer_nodes = self._get_nearest_nodes(dist_network, [c.center for c in self.groups])
-        load_nodes = []
+        load_nodes, new_transformer_nodes = [], []
         for tr_node, group in zip(transformer_nodes, self.groups):
             logger.info(f"Building secondary for {group.center}: {tr_node}")
 
@@ -304,11 +304,17 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
             )
             nearest_sec_node = self._get_nearest_nodes(secondary_graph, [tr_location])[0]
             dist_network = nx.union(dist_network, secondary_graph)
-            dist_network.add_edge(nearest_sec_node, tr_node)
+            new_tr_node_name = str(uuid.uuid4())
+            dist_network.add_node(
+                new_tr_node_name, x=tr_location.longitude + 1e-6, y=tr_location.latitude + 1e-6
+            )
+            dist_network.add_edge(tr_node, new_tr_node_name)
+            dist_network.add_edge(new_tr_node_name, nearest_sec_node)
+            new_transformer_nodes.append(new_tr_node_name)
 
         return self._get_distribution_graph_from_network(
             dist_network,
-            transformer_nodes,
+            new_transformer_nodes,
             asset_nodes={
                 DistributionVoltageSource: [substation_node],
                 DistributionLoad: load_nodes,
