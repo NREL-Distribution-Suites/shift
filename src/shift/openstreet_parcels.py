@@ -37,6 +37,18 @@ def convert_buildings_to_parcel(geo_df: GeoDataFrame) -> list[ParcelModel]:
                         geometry=[GeoLocation(*coord) for coord in geometry_obj.exterior.coords],
                     )
                 )
+            case "MultiPolygon":
+                parcels.append(
+                    ParcelModel(
+                        name=name,
+                        geometry=[
+                            GeoLocation(*coord)
+                            for coord in geometry_obj.convex_hull.exterior.coords
+                        ],
+                    )
+                )
+            case _:
+                logger.warning(f"{geometry_obj.geom_type} is not supported.")
     logger.info(f"Number of parcels: {len(parcels)}")
     return parcels
 

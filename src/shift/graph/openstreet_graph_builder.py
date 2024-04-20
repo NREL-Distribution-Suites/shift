@@ -1,11 +1,19 @@
 from abc import abstractmethod
 from collections import defaultdict
 import uuid
-from infrasys.quantities import Distance
+
 import networkx as nx
 from networkx.algorithms import approximation as ax
 from loguru import logger
-from gdm import DistributionBranch, DistributionVoltageSource, DistributionLoad
+from gdm import (
+    DistributionBranch,
+    DistributionVoltageSource,
+    DistributionLoad,
+    DistributionTransformer,
+)
+from infrasys.quantities import Distance
+from infrasys import Location
+
 
 from shift.graph.base_graph_builder import BaseGraphBuilder
 from shift.graph.distribution_graph import (
@@ -16,6 +24,7 @@ from shift.graph.distribution_graph import (
 )
 from shift.data_model import GeoLocation, GroupModel
 from shift.utils.nearest_points import get_nearest_points
+from shift.utils.split_network_edges import get_distance_between_points
 
 
 class OpenStreetGraphBuilder(BaseGraphBuilder):
@@ -207,6 +216,13 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
             for pred, edge_data in zip(predecessors, edges):
                 graph.add_edge(pred, new_node.name, edge_data=edge_data)
                 graph.remove_edge(node, pred)
+            graph.add_edge(
+                node_obj.name,
+                new_node.name,
+                edge_data=EdgeModel(
+                    name=str(uuid.uuid4()), length=None, edge_type=DistributionTransformer
+                ),
+            )
 
     def _get_distribution_graph_from_network(
         self,
@@ -235,10 +251,14 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
 
         node_asset_mapper = self._get_node_assets_mapper(asset_nodes)
         for edge in graph.edges:
+            locs: list[Location] = []
             for node in edge:
+                location = Location(
+                    x=graph.nodes[node]["x"], y=graph.nodes[node]["y"], crs="epsg:4326"
+                )
+                locs.append(location)
                 if dist_graph.has_node(node):
                     continue
-                location = GeoLocation(graph.nodes[node]["x"], graph.nodes[node]["y"])
                 assets = node_asset_mapper.get(node)
                 dist_graph.add_node(
                     NodeModel(name=node, location=location, assets=assets)
@@ -251,9 +271,13 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
                 edge_data=EdgeModel(
                     name=str(uuid.uuid4()),
                     edge_type=DistributionBranch,
+                    length=get_distance_between_points(
+                        *[GeoLocation(loc.x, loc.y) for loc in locs]
+                    ),
                 ),
             )
-        return self._explode_transformer_node(dist_graph, transformer_nodes)
+        self._explode_transformer_node(dist_graph, transformer_nodes)
+        return dist_graph
 
     def get_distribution_graph(self) -> DistributionGraph:
         """Method to return distribution graph.
@@ -269,7 +293,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
 
         substation_node = self._get_nearest_nodes(dist_network, [self.source_location])[0]
         transformer_nodes = self._get_nearest_nodes(dist_network, [c.center for c in self.groups])
-        load_nodes = []
+        load_nodes, new_transformer_nodes = [], []
         for tr_node, group in zip(transformer_nodes, self.groups):
             logger.info(f"Building secondary for {group.center}: {tr_node}")
 
@@ -280,11 +304,17 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
             )
             nearest_sec_node = self._get_nearest_nodes(secondary_graph, [tr_location])[0]
             dist_network = nx.union(dist_network, secondary_graph)
-            dist_network.add_edge(nearest_sec_node, tr_node)
+            new_tr_node_name = str(uuid.uuid4())
+            dist_network.add_node(
+                new_tr_node_name, x=tr_location.longitude + 1e-6, y=tr_location.latitude + 1e-6
+            )
+            dist_network.add_edge(tr_node, new_tr_node_name)
+            dist_network.add_edge(new_tr_node_name, nearest_sec_node)
+            new_transformer_nodes.append(new_tr_node_name)
 
         return self._get_distribution_graph_from_network(
             dist_network,
-            transformer_nodes,
+            new_transformer_nodes,
             asset_nodes={
                 DistributionVoltageSource: [substation_node],
                 DistributionLoad: load_nodes,

@@ -2,16 +2,9 @@ from typing import Annotated, Callable, Iterable, Type, Optional
 import copy
 
 import networkx as nx
-from pydantic import BaseModel, Field
-from shift.data_model import GeoLocation
-from shift.exceptions import (
-    EdgeAlreadyExists,
-    EdgeDoesNotExist,
-    NodeAlreadyExists,
-    NodeDoesNotExist,
-    VsourceNodeAlreadyExists,
-    VsourceNodeDoesNotExists,
-)
+from pydantic import BaseModel, Field, model_validator, ConfigDict
+from gdm.quantities import PositiveDistance
+from infrasys import Location
 from gdm import (
     DistributionLoad,
     DistributionSolar,
@@ -20,6 +13,16 @@ from gdm import (
     DistributionBranch,
     DistributionTransformer,
 )
+
+from shift.exceptions import (
+    EdgeAlreadyExists,
+    EdgeDoesNotExist,
+    NodeAlreadyExists,
+    NodeDoesNotExist,
+    VsourceNodeAlreadyExists,
+    VsourceNodeDoesNotExists,
+)
+
 
 VALID_NODE_TYPES = Annotated[
     Type[DistributionLoad]
@@ -40,7 +43,7 @@ class NodeModel(BaseModel):
     """Interface for node model."""
 
     name: Annotated[str, Field(..., description="Name of the node.")]
-    location: Annotated[GeoLocation, Field(..., description="Location of node.")]
+    location: Annotated[Location, Field(..., description="Location of node.")]
     assets: Annotated[
         Optional[set[VALID_NODE_TYPES]],
         Field({}, description="Set of asset types attached to node."),
@@ -50,8 +53,21 @@ class NodeModel(BaseModel):
 class EdgeModel(BaseModel):
     """Interface for edge model."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     name: Annotated[str, Field(..., description="Name of the node.")]
     edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
+    length: Annotated[Optional[PositiveDistance], Field(None, description="Length of edge.")]
+
+    @model_validator(mode="after")
+    def validate_fields(self):
+        if self.edge_type is DistributionTransformer and self.length is not None:
+            msg = f"{self.length=} must be None for {self.edge_type=}"
+            raise ValueError(msg)
+
+        if self.edge_type is DistributionBranch and self.length is None:
+            msg = f"{self.length=} must not be None for {self.edge_type=}"
+            raise ValueError(msg)
+        return self
 
 
 class DistributionGraph:
@@ -97,6 +113,9 @@ class DistributionGraph:
     >>> dgraph.remove_node("node_2")
     """
 
+    node_data_ppty = "node_data"
+    edge_data_ppty = "edge_data"
+
     def __init__(self):
         self._graph = nx.Graph()
         self.vsource_node = None
@@ -126,11 +145,15 @@ class DistributionGraph:
         if self._graph.has_node(node.name):
             msg = f"{node=} already exists in the graph."
             raise NodeAlreadyExists(msg)
-        if self.vsource_node is not None and DistributionVoltageSource in node.assets:
+        if (
+            self.vsource_node is not None
+            and node.assets
+            and DistributionVoltageSource in node.assets
+        ):
             msg = f"{self.vsource_node=} already exists. Cannot add {node=}"
             raise VsourceNodeAlreadyExists(msg)
-        self._graph.add_node(node.name, node_data=node)
-        if DistributionVoltageSource in node.assets:
+        self._graph.add_node(node.name, **{self.node_data_ppty: node})
+        if node.assets and DistributionVoltageSource in node.assets:
             self.vsource_node = node.name
 
     def add_nodes(self, nodes: list[NodeModel]):
@@ -193,7 +216,7 @@ class DistributionGraph:
                 f"they are added to the graph before creating an edge."
             )
             raise NodeDoesNotExist(msg)
-        self._graph.add_edge(from_node_name, to_node_name, edge_data=edge_data)
+        self._graph.add_edge(from_node_name, to_node_name, **{self.edge_data_ppty: edge_data})
 
     def get_node(self, node_name: str) -> NodeModel:
         """Get node data by node name.
@@ -216,7 +239,16 @@ class DistributionGraph:
             msg = f"{node_name=} does not exist in the graph."
             raise NodeDoesNotExist(msg)
 
-        return self._graph.nodes[node_name]["node_data"]
+        node_data = self._graph.nodes[node_name]
+        if self.node_data_ppty not in node_data:
+            msg = f"{self.node_data_ppty} does not exist in {node_data=} for {node_name=}"
+            raise ValueError(msg)
+
+        node_obj = node_data.get(self.node_data_ppty)
+        if not isinstance(node_obj, NodeModel):
+            msg = f"{node_obj=} is not of type NodeModel"
+            raise ValueError(msg)
+        return node_obj
 
     def get_nodes(
         self, filter_func: Callable[[NodeModel], bool] | None = None
@@ -236,10 +268,10 @@ class DistributionGraph:
         Examples
         --------
 
-        >>> dgraph.get_nodes()
+        >>> dgraph.get_nodes(filter_func=lambda x: "tr" in x)
         """
         for node in self._graph.nodes:
-            node_obj = self._graph.nodes[node]["node_data"]
+            node_obj = self.get_node(node)
             if (filter_func and filter_func(node_obj)) or filter_func is None:
                 yield node_obj
 
@@ -321,26 +353,45 @@ class DistributionGraph:
         if not self._graph.has_edge(from_node, to_node):
             msg = f"Edge between {from_node=} and {to_node=} does not exist."
             raise EdgeDoesNotExist(msg)
-        return self._graph.get_edge_data(from_node, to_node)["edge_data"]
+
+        edge_data = self._graph.get_edge_data(from_node, to_node)
+        if self.edge_data_ppty not in edge_data:
+            msg = f"{self.node_data_ppty} does not exist in {edge_data=} for {from_node, to_node}"
+            raise ValueError(msg)
+
+        edg_obj = edge_data.get(self.edge_data_ppty)
+
+        if not isinstance(edg_obj, EdgeModel):
+            msg = f"{edge_data=} is not of type {EdgeModel}"
+            raise ValueError(msg)
+        return edg_obj
+
+    def get_edges(
+        self, filter_func: Callable[[EdgeModel], bool] = None
+    ) -> Iterable[tuple[str, str, EdgeModel]]:
+        """Returns interator for all edges in the graph.
+
+        Parameters
+        ----------
+        filter_func: Callable[[EdgeModel], bool]
+            Optional filter function.
+
+        Returns
+        -------
+        Iterable[tuple[str, str, EdgeModel]]
+        """
+        for edge in self._graph.edges:
+            edge_data = self.get_edge(*edge)
+            if filter_func and not filter_func(edge_data):
+                continue
+            yield tuple([edge[0], edge[1], edge_data])
 
     def get_undirected_graph(self) -> nx.Graph:
-        """Method to return undirected graph.
-
-        Examples
-        --------
-
-        >>> dgraph.get_undirected_graph()
-        """
+        """Method to return undirected graph."""
         return copy.deepcopy(self._graph)
 
     def get_dfs_tree(self) -> nx.DiGraph:
-        """Internal method to directed dfs tree from vsource
-
-        Examples
-        --------
-
-        >>> dgraph.get_dfs_tree()
-        """
+        """Internal method to directed dfs tree from vsource."""
         if self.vsource_node is None:
             raise VsourceNodeDoesNotExists("Vsource node does not exist on this graph.")
         return nx.dfs_tree(self._graph, source=self.vsource_node)
