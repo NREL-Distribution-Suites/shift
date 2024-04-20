@@ -103,16 +103,7 @@ class DistributionSystemBuilder:
                 raise NotImplementedError(msg)
 
     def _add_asset(self, bus_name: str, asset_type: VALID_NODE_TYPES):
-        """Internal method to add asset to a bus.
-
-        Parameters
-        ----------
-
-        bus_name: str
-            Name of the bus.
-        asset_type: VALID_NODE_TYPES
-            Asset type.
-        """
+        """Internal method to add asset to a bus."""
         asset_obj = asset_type(
             name=str(uuid4()),
             bus=self._system.get_component(DistributionBus, bus_name),
@@ -133,18 +124,7 @@ class DistributionSystemBuilder:
         self._system.add_component(bus)
 
     def _add_branch(self, from_node: str, to_node: str, edge_data: EdgeModel):
-        """Internal method to add branch.
-
-        Parameters
-        ----------
-
-        from_node: str
-            Name of from node or bus.
-        to_node: str
-            Name of to node or bus.
-        edge_data: EdgeModel
-            Edge data object.
-        """
+        """Internal method to add branch."""
         edge = edge_data.edge_type(
             name=edge_data.name,
             buses=[
@@ -159,19 +139,7 @@ class DistributionSystemBuilder:
         self._system.add_component(edge)
 
     def _add_transformer(self, from_node: str, to_node: str, edge_data: EdgeModel):
-        """Internal method to add transformer.
-
-
-        Parameters
-        ----------
-
-        from_node: str
-            Name of from node or bus.
-        to_node: str
-            Name of to node or bus.
-        edge_data: EdgeModel
-            Edge data object.
-        """
+        """Internal method to add transformer."""
         from_bus_phase = self.phase_mapper.node_phase_mapping[from_node]
         to_bus_phase = self.phase_mapper.node_phase_mapping[to_node]
         tr_phase = self.phase_mapper.transformer_phase_mapping[edge_data.name]

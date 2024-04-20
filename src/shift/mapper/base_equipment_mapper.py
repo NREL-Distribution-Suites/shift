@@ -7,7 +7,7 @@ from shift.graph.distribution_graph import VALID_NODE_TYPES, DistributionGraph
 
 
 class BaseEquipmentMapper(ABC):
-    """Abstract class for mapping equipment to nodes and edges.
+    """Abstract class for mapping equipment to nodes and assets.
 
     Subclasses must implement following method.
     * transformer_voltage_mapping
