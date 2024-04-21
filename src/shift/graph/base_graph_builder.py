@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from shift import DistributionGraph
+from shift.graph.distribution_graph import DistributionGraph
 
 
 class BaseGraphBuilder(ABC):

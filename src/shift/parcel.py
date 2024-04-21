@@ -6,8 +6,13 @@ from loguru import logger
 
 from shift.data_model import ParcelModel, GeoLocation
 
+from pathlib import Path
 
-def convert_buildings_to_parcel(geo_df: GeoDataFrame) -> list[ParcelModel]:
+import pandas as pd
+from shapely import wkt
+
+
+def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
     """Function to convert geopandas dataframe to list of parcel models.
 
     Args:
@@ -53,7 +58,26 @@ def convert_buildings_to_parcel(geo_df: GeoDataFrame) -> list[ParcelModel]:
     return parcels
 
 
-def get_parcels(
+def parcels_from_csv(file_path: Path):
+    """Function to load parcels from csv.
+
+    Note, this function uses geopandas to construct geo dataframe
+    which requires that you have at least a column named `geometry` in your file.
+
+    Parameters
+    ----------
+    file_path: Path to csv file with geometries.
+    """
+
+    df = pd.read_csv(file_path)
+    if "geometry" not in df.columns:
+        msg = f"geometry column missing csv file {file_path=}"
+        raise ValueError(msg)
+    df["geometry"] = df["geometry"].apply(wkt.loads)
+    return parcels_from_geodataframe(GeoDataFrame(df))
+
+
+def parcels_from_location(
     location: str | GeoLocation | list[GeoLocation], max_distance: Distance = Distance(500, "m")
 ) -> list[ParcelModel] | None:
     """Function to return parcels for a given location.
@@ -86,16 +110,14 @@ def get_parcels(
     logger.info(f"Attempting to fecth parcels for {location}")
     tags = {"building": True}
     if isinstance(location, str):
-        return convert_buildings_to_parcel(
+        return parcels_from_geodataframe(
             ox.features_from_address(location, tags, dist=max_distance.to("m").magnitude)
         )
     elif isinstance(location, GeoLocation):
-        return convert_buildings_to_parcel(
+        return parcels_from_geodataframe(
             ox.features_from_point(
                 list(reversed(location)), tags, dist=max_distance.to("m").magnitude
             )
         )
     elif isinstance(location, list):
-        return convert_buildings_to_parcel(
-            ox.features_from_polygon(shapely.Polygon(location), tags)
-        )
+        return parcels_from_geodataframe(ox.features_from_polygon(shapely.Polygon(location), tags))

@@ -8,7 +8,7 @@ from gdm import (
 from infrasys import Location
 from gdm.quantities import PositiveDistance
 
-from shift import DistributionGraph, NodeModel
+from shift import DistributionGraph, NodeModel, EdgeModel
 from shift.exceptions import (
     EdgeAlreadyExists,
     EdgeDoesNotExist,
@@ -16,7 +16,6 @@ from shift.exceptions import (
     NodeDoesNotExist,
     VsourceNodeAlreadyExists,
 )
-from shift.graph.distribution_graph import EdgeModel
 
 
 @pytest.fixture

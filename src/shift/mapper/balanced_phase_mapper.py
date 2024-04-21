@@ -1,41 +1,19 @@
-from enum import Enum
 from functools import cached_property, reduce
 from itertools import combinations, groupby
 import operator
 from typing import Literal
 
 from gdm import DistributionTransformer, Phase
-from pydantic import BaseModel, ConfigDict
-from gdm.quantities import PositiveApparentPower
 import numpy as np
 import networkx as nx
 from shift.exceptions import AllocationMappingError
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from infrasys import Location
 from networkx.algorithms.approximation import steiner_tree
 
-from shift.graph.distribution_graph import DistributionGraph, VALID_NODE_TYPES
+from shift.graph.distribution_graph import DistributionGraph
+from shift.data_model import VALID_NODE_TYPES
 from shift.mapper.base_phase_mapper import BasePhaseMapper
-
-
-class TransformerTypes(str, Enum):
-    """Enumerator for transformer types for phase allocation."""
-
-    THREE_PHASE = "THREE_PHASE"
-    SINGLE_PHASE_PRIMARY_DELTA = "SINGLE_PHASE_PRIMARY_DELTA"
-    SINGLE_PHASE = "SINGLE_PHASE"
-    SPLIT_PHASE = "SPLIT_PHASE"
-    SPLIT_PHASE_PRIMARY_DELTA = "SPLIT_PHASE_PRIMARY_DELTA"
-
-
-class TransformerPhaseMapperModel(BaseModel):
-    """Class interface for phase mapper model."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    tr_name: str
-    tr_type: TransformerTypes
-    tr_capacity: PositiveApparentPower
-    location: Location
+from shift.data_model import TransformerTypes, TransformerPhaseMapperModel
 
 
 def _get_allocations(names: list[str], labels: list[int], n_categories: int):

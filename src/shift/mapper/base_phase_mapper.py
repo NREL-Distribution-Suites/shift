@@ -3,7 +3,8 @@ from functools import cached_property
 
 from gdm import Phase
 
-from shift.graph.distribution_graph import DistributionGraph, VALID_NODE_TYPES
+from shift.graph.distribution_graph import DistributionGraph
+from shift.data_model import VALID_NODE_TYPES
 from shift.exceptions import InvalidAssetPhase
 
 
