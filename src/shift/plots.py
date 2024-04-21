@@ -1,11 +1,14 @@
 import networkx as nx
 
+
 from shift.data_model import GeoLocation, ParcelModel
 from shift.graph.distribution_graph import DistributionGraph
+from shift.mapper.base_phase_mapper import BasePhaseMapper
+from shift.mapper.base_voltage_mapper import BaseVoltageMapper
 from shift.plot_manager import PlotManager
 
 
-def add_parcels_to_plots(
+def add_parcels_to_plot(
     parcels: list[ParcelModel], plot_manager: PlotManager, name: str = "Polygon Parcels"
 ):
     """Plots given list of parcels.
@@ -51,7 +54,7 @@ def add_parcels_to_plots(
         )
 
 
-def add_xy_network_to_plots(graph: nx.Graph, plot_manager: PlotManager, name: str = "Graph nodes"):
+def add_xy_network_to_plot(graph: nx.Graph, plot_manager: PlotManager, name: str = "Graph nodes"):
     """Function to plot xy network.
 
     Assumes longitude is availabe as `x` and latitude is
@@ -92,7 +95,7 @@ def add_xy_network_to_plots(graph: nx.Graph, plot_manager: PlotManager, name: st
     )
 
 
-def add_distribution_graph(
+def add_distribution_graph_to_plot(
     graph: DistributionGraph, plot_manager: PlotManager, name: str = "Graph nodes"
 ):
     """Function to plot distribution graph.
@@ -119,3 +122,50 @@ def add_distribution_graph(
         name=name,
         mode="lines+markers",
     )
+
+
+def add_phase_mapper_to_plot(phase_mapper: BasePhaseMapper, plot_manager: PlotManager):
+    """Function to add plots for different combinations of phases."""
+
+    combinations = set(map(frozenset, phase_mapper.node_phase_mapping.values()))
+
+    for combination in combinations:
+        geometries = []
+        for from_node, to_node, edge in phase_mapper.graph.get_edges():
+            if (
+                phase_mapper.node_phase_mapping[from_node] == combination
+                or phase_mapper.node_phase_mapping[to_node] == combination
+            ):
+                geometries.append(
+                    [
+                        GeoLocation(node.location.x, node.location.y)
+                        for node in [
+                            phase_mapper.graph.get_node(from_node),
+                            phase_mapper.graph.get_node(to_node),
+                        ]
+                    ]
+                )
+        if geometries:
+            plot_manager.add_plot(
+                geometries=geometries,
+                name=f"{','.join([el.value for el in combination])}",
+                mode="lines",
+            )
+
+
+def add_voltage_mapper_to_plot(voltage_mapper: BaseVoltageMapper, plot_manager: PlotManager):
+    """Function to add plots for different combinations of phases."""
+
+    voltage_levels = set(voltage_mapper.node_voltage_mapping.values())
+
+    for combination in voltage_levels:
+        geometries = []
+        for node in voltage_mapper.graph.get_nodes():
+            if voltage_mapper.node_voltage_mapping[node.name] == combination:
+                geometries.append([GeoLocation(node.location.x, node.location.y)])
+        if geometries:
+            plot_manager.add_plot(
+                geometries=geometries,
+                name=f"{combination.magnitude} {combination.units}",
+                mode="markers",
+            )

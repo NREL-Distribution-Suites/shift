@@ -16,13 +16,8 @@ from infrasys import Location
 
 
 from shift.graph.base_graph_builder import BaseGraphBuilder
-from shift.graph.distribution_graph import (
-    DistributionGraph,
-    EdgeModel,
-    NodeModel,
-    VALID_NODE_TYPES,
-)
-from shift.data_model import GeoLocation, GroupModel
+from shift.graph.distribution_graph import DistributionGraph
+from shift.data_model import GeoLocation, GroupModel, EdgeModel, NodeModel, VALID_NODE_TYPES
 from shift.utils.nearest_points import get_nearest_points
 from shift.utils.split_network_edges import get_distance_between_points
 

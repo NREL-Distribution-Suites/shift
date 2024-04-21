@@ -3,7 +3,8 @@ from functools import cached_property
 
 from infrasys.component import Component
 
-from shift.graph.distribution_graph import VALID_NODE_TYPES, DistributionGraph
+from shift.graph.distribution_graph import DistributionGraph
+from shift.data_model import VALID_NODE_TYPES
 
 
 class BaseEquipmentMapper(ABC):

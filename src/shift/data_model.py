@@ -1,6 +1,23 @@
-from typing import Annotated, NamedTuple
+from typing import Annotated, NamedTuple, Type, Optional
+from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from gdm.quantities import PositiveVoltage, PositiveApparentPower, PositiveDistance
+from gdm import (
+    DistributionLoad,
+    DistributionSolar,
+    DistributionCapacitor,
+    DistributionVoltageSource,
+    DistributionBranch,
+    DistributionTransformer,
+)
+from infrasys import Location
+
+
+class BaseComponent(BaseModel):
+    """Base component used for shift model."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class GeoLocation(NamedTuple):
@@ -31,3 +48,78 @@ class GroupModel(BaseModel):
     points: Annotated[
         list[GeoLocation], Field(..., description="List of points that belong to this cluster.")
     ]
+
+
+class TransformerVoltageModel(BaseComponent):
+    """Interface for transformer voltage model."""
+
+    name: Annotated[str, Field(..., description="Name of the transformer.")]
+    voltages: Annotated[
+        list[PositiveVoltage], Field(..., description="List of transformer voltages.")
+    ]
+
+
+class TransformerTypes(str, Enum):
+    """Enumerator for transformer types for phase allocation."""
+
+    THREE_PHASE = "THREE_PHASE"
+    SINGLE_PHASE_PRIMARY_DELTA = "SINGLE_PHASE_PRIMARY_DELTA"
+    SINGLE_PHASE = "SINGLE_PHASE"
+    SPLIT_PHASE = "SPLIT_PHASE"
+    SPLIT_PHASE_PRIMARY_DELTA = "SPLIT_PHASE_PRIMARY_DELTA"
+
+
+class TransformerPhaseMapperModel(BaseModel):
+    """Class interface for phase mapper model."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    tr_name: str
+    tr_type: TransformerTypes
+    tr_capacity: PositiveApparentPower
+    location: Location
+
+
+VALID_NODE_TYPES = Annotated[
+    Type[DistributionLoad]
+    | Type[DistributionSolar]
+    | Type[DistributionCapacitor]
+    | Type[DistributionVoltageSource],
+    Field(..., description="Possible node types."),
+]
+
+
+VALID_EDGE_TYPES = Annotated[
+    Type[DistributionBranch] | Type[DistributionTransformer],
+    Field(..., description="Possible edge types."),
+]
+
+
+class NodeModel(BaseModel):
+    """Interface for node model."""
+
+    name: Annotated[str, Field(..., description="Name of the node.")]
+    location: Annotated[Location, Field(..., description="Location of node.")]
+    assets: Annotated[
+        Optional[set[VALID_NODE_TYPES]],
+        Field({}, description="Set of asset types attached to node."),
+    ]
+
+
+class EdgeModel(BaseModel):
+    """Interface for edge model."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    name: Annotated[str, Field(..., description="Name of the node.")]
+    edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
+    length: Annotated[Optional[PositiveDistance], Field(None, description="Length of edge.")]
+
+    @model_validator(mode="after")
+    def validate_fields(self):
+        if self.edge_type is DistributionTransformer and self.length is not None:
+            msg = f"{self.length=} must be None for {self.edge_type=}"
+            raise ValueError(msg)
+
+        if self.edge_type is DistributionBranch and self.length is None:
+            msg = f"{self.length=} must not be None for {self.edge_type=}"
+            raise ValueError(msg)
+        return self

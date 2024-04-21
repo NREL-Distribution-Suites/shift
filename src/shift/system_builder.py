@@ -22,12 +22,12 @@ from gdm import (
     Phase,
 )
 
-from shift.graph.distribution_graph import (
+from shift.data_model import (
     VALID_NODE_TYPES,
-    DistributionGraph,
     EdgeModel,
     NodeModel,
 )
+from shift.graph.distribution_graph import DistributionGraph
 from shift.mapper.base_equipment_mapper import BaseEquipmentMapper
 from shift.mapper.base_phase_mapper import BasePhaseMapper
 from shift.mapper.base_voltage_mapper import BaseVoltageMapper

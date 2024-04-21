@@ -1,18 +1,9 @@
-from typing import Annotated, Callable, Iterable, Type, Optional
+from typing import Callable, Iterable
 import copy
 
 import networkx as nx
-from pydantic import BaseModel, Field, model_validator, ConfigDict
-from gdm.quantities import PositiveDistance
-from infrasys import Location
-from gdm import (
-    DistributionLoad,
-    DistributionSolar,
-    DistributionCapacitor,
-    DistributionVoltageSource,
-    DistributionBranch,
-    DistributionTransformer,
-)
+from gdm import DistributionVoltageSource
+
 
 from shift.exceptions import (
     EdgeAlreadyExists,
@@ -22,52 +13,7 @@ from shift.exceptions import (
     VsourceNodeAlreadyExists,
     VsourceNodeDoesNotExists,
 )
-
-
-VALID_NODE_TYPES = Annotated[
-    Type[DistributionLoad]
-    | Type[DistributionSolar]
-    | Type[DistributionCapacitor]
-    | Type[DistributionVoltageSource],
-    Field(..., description="Possible node types."),
-]
-
-
-VALID_EDGE_TYPES = Annotated[
-    Type[DistributionBranch] | Type[DistributionTransformer],
-    Field(..., description="Possible edge types."),
-]
-
-
-class NodeModel(BaseModel):
-    """Interface for node model."""
-
-    name: Annotated[str, Field(..., description="Name of the node.")]
-    location: Annotated[Location, Field(..., description="Location of node.")]
-    assets: Annotated[
-        Optional[set[VALID_NODE_TYPES]],
-        Field({}, description="Set of asset types attached to node."),
-    ]
-
-
-class EdgeModel(BaseModel):
-    """Interface for edge model."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    name: Annotated[str, Field(..., description="Name of the node.")]
-    edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
-    length: Annotated[Optional[PositiveDistance], Field(None, description="Length of edge.")]
-
-    @model_validator(mode="after")
-    def validate_fields(self):
-        if self.edge_type is DistributionTransformer and self.length is not None:
-            msg = f"{self.length=} must be None for {self.edge_type=}"
-            raise ValueError(msg)
-
-        if self.edge_type is DistributionBranch and self.length is None:
-            msg = f"{self.length=} must not be None for {self.edge_type=}"
-            raise ValueError(msg)
-        return self
+from shift.data_model import NodeModel, EdgeModel
 
 
 class DistributionGraph:
