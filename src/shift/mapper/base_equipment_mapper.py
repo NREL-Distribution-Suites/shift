@@ -21,7 +21,7 @@ class BaseEquipmentMapper(ABC):
     """
 
     def __init__(self, graph: DistributionGraph):
-        self._graph = graph
+        self.graph = graph
 
     @abstractmethod
     @cached_property

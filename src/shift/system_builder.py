@@ -83,7 +83,7 @@ class DistributionSystemBuilder:
         """Internal method to build distribution system."""
         for node in self.dist_graph.get_nodes():
             self._add_bus(node)
-            for asset in node.assets:
+            for asset in node.assets or {}:
                 self._add_asset(node.name, asset)
 
         for from_node, to_node, edge_data in self.dist_graph.get_edges():
@@ -94,10 +94,10 @@ class DistributionSystemBuilder:
                     f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
                 )
                 raise NotImplementedError(msg)
-            if edge_data.edge_type == DistributionBranch:
-                self._add_branch(from_node, to_node, edge_data.edge_type, edge_data.name)
-            elif edge_data.edge_type == DistributionTransformer:
-                self._add_transformer(from_node, to_node, edge_data.edge_type, edge_data.name)
+            if issubclass(edge_data.edge_type, DistributionBranch):
+                self._add_branch(from_node, to_node, edge_data)
+            elif issubclass(edge_data.edge_type, DistributionTransformer):
+                self._add_transformer(from_node, to_node, edge_data)
             else:
                 msg = f"{edge_data.edge_type=} not supported. {edge_data=}"
                 raise NotImplementedError(msg)

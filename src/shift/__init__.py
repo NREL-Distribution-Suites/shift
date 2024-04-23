@@ -38,9 +38,7 @@ from shift.graph.openstreet_graph_builder import OpenStreetGraphBuilder
 from shift.mapper.base_equipment_mapper import BaseEquipmentMapper
 from shift.mapper.base_phase_mapper import BasePhaseMapper
 from shift.mapper.base_voltage_mapper import BaseVoltageMapper
-from shift.mapper.balanced_phase_mapper import (
-    BalancedPhaseMapper,
-)
+from shift.mapper.balanced_phase_mapper import BalancedPhaseMapper, kmeans_allocations
 from shift.mapper.transformer_voltage_mapper import (
     TransformerVoltageMapper,
 )
