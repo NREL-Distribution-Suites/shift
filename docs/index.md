@@ -11,3 +11,10 @@ Primarily this package will leverage open street parcels, road network to build 
 
 references/index
 ```
+
+```{toctree}
+:hidden: true
+:maxdepth: 2
+
+usage/index
+```

@@ -2,6 +2,6 @@
 
 
 ```{eval-rst}
-.. autofunction:: shift.get_parcels
+.. autofunction:: shift.parcels_from_geodataframe
 ```
 
