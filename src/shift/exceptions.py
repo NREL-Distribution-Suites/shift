@@ -32,3 +32,11 @@ class EdgeDoesNotExist(Exception):
 
 class AllocationMappingError(Exception):
     """Raise this error of allocation mapping is incorrect."""
+
+
+class EquipmentNotFoundError(Exception):
+    """Raise this error if equipment is not found."""
+
+
+class WrongEquipmentAssigned(Exception):
+    """Raise this error of wrong equipment is assigned."""

@@ -147,7 +147,7 @@ class PlotManager:
         """
         if margin is None:
             margin = {"r": 0, "t": 0, "l": 0, "b": 0}
-        figure.update_layout(margin=margin)
+        figure.update_layout(margin=margin, legend=dict(x=0, y=1))
         figure.update_mapboxes(
             {
                 "accesstoken": access_token,

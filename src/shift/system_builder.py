@@ -1,4 +1,7 @@
+from functools import reduce
+import operator
 from uuid import uuid4
+import math
 
 from gdm import (
     DistributionSystem,
@@ -6,21 +9,11 @@ from gdm import (
     VoltageTypes,
     DistributionBranch,
     DistributionTransformer,
-    MatrixImpedanceBranchEquipment,
-    MatrixImpedanceBranch,
-    SequenceImpedanceBranchEquipment,
-    SequenceImpedanceBranch,
-    GeometryBranchEquipment,
-    GeometryBranch,
-    MatrixImpedanceFuseEquipment,
-    MatrixImpedanceFuse,
-    MatrixImpedanceSwitch,
-    MatrixImpedanceRecloser,
-    MatrixImpedanceRecloserEquipment,
-    MatrixImpedanceSwitchEquipment,
-    DistributionTransformerEquipment,
     Phase,
+    DistributionTransformerEquipment,
 )
+from gdm.quantities import PositiveVoltage
+import numpy as np
 
 from shift.data_model import (
     VALID_NODE_TYPES,
@@ -31,17 +24,7 @@ from shift.graph.distribution_graph import DistributionGraph
 from shift.mapper.base_equipment_mapper import BaseEquipmentMapper
 from shift.mapper.base_phase_mapper import BasePhaseMapper
 from shift.mapper.base_voltage_mapper import BaseVoltageMapper
-
-
-EQUIPMENT_TO_CLASS_TYPE = {
-    MatrixImpedanceBranch: MatrixImpedanceBranchEquipment,
-    MatrixImpedanceFuse: MatrixImpedanceFuseEquipment,
-    MatrixImpedanceRecloser: MatrixImpedanceRecloserEquipment,
-    MatrixImpedanceSwitch: MatrixImpedanceSwitchEquipment,
-    SequenceImpedanceBranch: SequenceImpedanceBranchEquipment,
-    GeometryBranch: GeometryBranchEquipment,
-    DistributionTransformer: DistributionTransformerEquipment,
-}
+from shift.constants import EQUIPMENT_TO_CLASS_TYPE
 
 
 class DistributionSystemBuilder:
@@ -83,7 +66,7 @@ class DistributionSystemBuilder:
         """Internal method to build distribution system."""
         for node in self.dist_graph.get_nodes():
             self._add_bus(node)
-            for asset in node.assets:
+            for asset in node.assets or {}:
                 self._add_asset(node.name, asset)
 
         for from_node, to_node, edge_data in self.dist_graph.get_edges():
@@ -94,10 +77,10 @@ class DistributionSystemBuilder:
                     f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
                 )
                 raise NotImplementedError(msg)
-            if edge_data.edge_type == DistributionBranch:
-                self._add_branch(from_node, to_node, edge_data.edge_type, edge_data.name)
-            elif edge_data.edge_type == DistributionTransformer:
-                self._add_transformer(from_node, to_node, edge_data.edge_type, edge_data.name)
+            if issubclass(edge_data.edge_type, DistributionBranch):
+                self._add_branch(from_node, to_node, edge_data)
+            elif issubclass(edge_data.edge_type, DistributionTransformer):
+                self._add_transformer(from_node, to_node, edge_data)
             else:
                 msg = f"{edge_data.edge_type=} not supported. {edge_data=}"
                 raise NotImplementedError(msg)
@@ -138,23 +121,72 @@ class DistributionSystemBuilder:
         )
         self._system.add_component(edge)
 
+    @staticmethod
+    def _get_wdg_voltages(tr_equipment: DistributionTransformerEquipment) -> PositiveVoltage:
+        """Internal method to return winding phase voltages."""
+        return PositiveVoltage(
+            [
+                wdg.nominal_voltage.to("kilovolt").magnitude
+                / (
+                    1
+                    if wdg.voltage_type == VoltageTypes.LINE_TO_GROUND
+                    else math.sqrt(3)
+                    if not tr_equipment.is_center_tapped
+                    else 2
+                )
+                for wdg in tr_equipment.windings
+            ],
+            "kilovolt",
+        )
+
+    def _get_wdg_buses(
+        self, from_node: str, to_node: str, tr_equipment: DistributionTransformerEquipment
+    ) -> list[str]:
+        """Internal method to get buses for tranformer equipment windings."""
+        wdg_voltages = self._get_wdg_voltages(tr_equipment)
+        from_bus_voltage = self.voltage_mapper.node_voltage_mapping[from_node]
+        to_bus_voltage = self.voltage_mapper.node_voltage_mapping[to_node]
+        buses = [from_node, to_node]
+        voltages = np.array(
+            [from_bus_voltage.to("kilovolt").magnitude, to_bus_voltage.to("kilovolt").magnitude],
+        )
+        mapped_buses = [
+            buses[abs(voltages - el.to("kilovolt").magnitude).argmin()] for el in wdg_voltages
+        ]
+        if len(set(mapped_buses)) != len(set(wdg_voltages)):
+            msg = f"{set(mapped_buses)=} not matching winding voltages {set(wdg_voltages)=}"
+            raise ValueError(msg)
+        return mapped_buses
+
+    def _get_wdg_phases(self, wdg_buses: list[str]) -> list[set[Phase]]:
+        """Internal method to return phases for winding nodes."""
+        wdg_phases = [self.phase_mapper.node_phase_mapping[bus] for bus in wdg_buses]
+        is_split_phase = bool(set([Phase.S1, Phase.S2]) & reduce(operator.or_, wdg_phases))
+        if not is_split_phase:
+            return wdg_phases
+        if len(wdg_buses) != 3 or len(set(wdg_buses)) != 2:
+            msg = f"Invalid split phase winding buses {wdg_buses=}"
+            raise ValueError(msg)
+        split_phases = [set([Phase.S1, Phase.N]), set([Phase.N, Phase.S2])]
+        for idx, wdg_ph in enumerate(wdg_phases):
+            if not bool(set([Phase.S1, Phase.S2]) & wdg_ph):
+                split_phases.insert(idx, wdg_ph)
+        return split_phases
+
     def _add_transformer(self, from_node: str, to_node: str, edge_data: EdgeModel):
         """Internal method to add transformer."""
-        from_bus_phase = self.phase_mapper.node_phase_mapping[from_node]
-        to_bus_phase = self.phase_mapper.node_phase_mapping[to_node]
-        tr_phase = self.phase_mapper.transformer_phase_mapping[edge_data.name]
+        tr_equipment: DistributionTransformerEquipment = (
+            self.equipment_mapper.edge_equipment_mapping[edge_data.name]
+        )
 
-        from_wdg_phase = from_bus_phase if set([Phase.S1, Phase.S2]) & from_bus_phase else tr_phase
-        to_wdg_phase = to_bus_phase if set([Phase.S1, Phase.S2]) & to_bus_phase else tr_phase
+        wdg_buses = self._get_wdg_buses(from_node, to_node, tr_equipment)
+        wdg_phases = self._get_wdg_phases(wdg_buses)
 
         edge = edge_data.edge_type(
             name=edge_data.name,
-            buses=[
-                self._system.get_component(DistributionBus, from_node),
-                self._system.get_component(DistributionBus, to_node),
-            ],
-            winding_phases=[from_wdg_phase, to_wdg_phase],
-            equipment=self.equipment_mapper.edge_equipment_mapping[edge_data.name],
+            buses=[self._system.get_component(DistributionBus, node) for node in wdg_buses],
+            winding_phases=wdg_phases,
+            equipment=tr_equipment,
         )
         self._system.add_component(edge)
 
