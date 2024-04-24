@@ -36,3 +36,7 @@ class AllocationMappingError(Exception):
 
 class EquipmentNotFoundError(Exception):
     """Raise this error if equipment is not found."""
+
+
+class WrongEquipmentAssigned(Exception):
+    """Raise this error of wrong equipment is assigned."""
