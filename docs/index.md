@@ -5,9 +5,22 @@ uses [Grid Data Models](https://github.nrel.gov/CADET/grid-data-models) to repre
 
 Primarily this package will leverage open street parcels, road network to build out distribution model. 
 
+You can install this package from `main` branch using following command.
+
+```bash
+pip install "nrel-shift @ git+https://github.com/NREL-Distribution-Suites/shift.git@main"
+```
+
 ```{toctree}
 :hidden: true
 :maxdepth: 2
 
 references/index
+```
+
+```{toctree}
+:hidden: true
+:maxdepth: 2
+
+usage/index
 ```
