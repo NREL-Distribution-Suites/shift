@@ -49,12 +49,15 @@ def get_mesh_network(
         np.arange(lower_left.latitude, upper_right.latitude + spacing_degrees, spacing_degrees),
     )
     if not graph.nodes:
-        point_distance = np.sqrt(np.sum((np.array(upper_right) - np.array(lower_left))**2))*DEGREE_TO_METER
+        point_distance = (
+            np.sqrt(np.sum((np.array(upper_right) - np.array(lower_left)) ** 2)) * DEGREE_TO_METER
+        )
         msg = (
             f"Empty graph for {lower_left=}, {upper_right=}, {spacing=}. "
-            f"Diagonal distance is {point_distance=} meter.")
+            f"Diagonal distance is {point_distance=} meter."
+        )
         raise EmptyGraphError(msg)
-    
+
     for node in graph.nodes:
         graph.nodes[node]["x"] = node[0]
         graph.nodes[node]["y"] = node[1]

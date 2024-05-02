@@ -15,7 +15,7 @@ from infrasys.quantities import Distance
 from infrasys import Location
 
 
-from shift.exceptions import NodeDoesNotExist, EmptyGraphError
+from shift.exceptions import EmptyGraphError
 from shift.graph.base_graph_builder import BaseGraphBuilder
 from shift.graph.distribution_graph import DistributionGraph
 from shift.data_model import GeoLocation, GroupModel, EdgeModel, NodeModel, VALID_NODE_TYPES
