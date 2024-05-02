@@ -15,6 +15,7 @@ from infrasys.quantities import Distance
 from infrasys import Location
 
 
+from shift.exceptions import EmptyGraphError
 from shift.graph.base_graph_builder import BaseGraphBuilder
 from shift.graph.distribution_graph import DistributionGraph
 from shift.data_model import GeoLocation, GroupModel, EdgeModel, NodeModel, VALID_NODE_TYPES
@@ -107,6 +108,9 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         -------
             list[str]
         """
+        if not graph.nodes:
+            msg = f"Empty graph provided. {graph.nodes=}"
+            raise EmptyGraphError(msg)
         graph_nodes_mapper = self._get_tuple_to_node_mapper(graph)
         nearest_nodes = get_nearest_points(list(graph_nodes_mapper.keys()), points)
         return [graph_nodes_mapper[tuple(node)] for node in nearest_nodes]
@@ -282,6 +286,9 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         DistributionGraph
         """
         dist_network = nx.Graph(self.build_primary_network())
+        if not dist_network.nodes:
+            msg = "Empty primary graph created."
+            raise EmptyGraphError(msg)
         dist_network = nx.relabel_nodes(
             dist_network, {node: str(node) for node in list(dist_network.nodes)}
         )

@@ -40,3 +40,7 @@ class EquipmentNotFoundError(Exception):
 
 class WrongEquipmentAssigned(Exception):
     """Raise this error of wrong equipment is assigned."""
+
+
+class EmptyGraphError(Exception):
+    """Raise this error if graph is empty."""

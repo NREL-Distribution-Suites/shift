@@ -5,6 +5,7 @@ from shapely import MultiPoint, Point
 from infrasys.quantities import Distance
 
 from shift.data_model import GroupModel, GeoLocation
+from shift.exceptions import EmptyGraphError
 from shift.graph.openstreet_graph_builder import OpenStreetGraphBuilder
 from shift.openstreet_roads import get_road_network
 from shift.utils.mesh_network import get_mesh_network
@@ -48,10 +49,18 @@ class PRSG(OpenStreetGraphBuilder):
             upper_right=GeoLocation(maxx, maxy),
             spacing=Distance(50, "m"),
         )
-        return self._get_steiner_tree(
+        nearest_nodes = self._get_nearest_nodes(sec_network, group.points)
+        if len(set(nearest_nodes)) == 1:
+            return nx.Graph(sec_network.subgraph(nearest_nodes))
+        reduced_network = self._get_steiner_tree(
             sec_network,
-            self._get_nearest_nodes(sec_network, group.points),
+            nearest_nodes,
         )
+
+        if not reduced_network.nodes:
+            raise EmptyGraphError("Reduced network is empty.")
+
+        return reduced_network
 
     def build_primary_network(self) -> nx.Graph:
         """Internal method for building primary network.
