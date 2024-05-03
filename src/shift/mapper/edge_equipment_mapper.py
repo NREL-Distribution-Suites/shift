@@ -62,8 +62,10 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
             sum(
                 [
                     math.sqrt(
-                        (el.z_real + el.i_real + el.p_real).to("kilowatt").magnitude ** 2
-                        + (el.z_imag + el.i_imag + el.p_imag).to("kilovar").magnitude ** 2
+                        (el.z_real + el.i_real + el.p_real)
+                        * el.real_power.to("kilowatt").magnitude ** 2
+                        + (el.z_imag + el.i_imag + el.p_imag)
+                        * el.reactive_power.to("kilovar").magnitude ** 2
                     )
                     for el in load_equipment.phase_loads
                 ]
