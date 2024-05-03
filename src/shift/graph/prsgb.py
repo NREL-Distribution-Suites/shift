@@ -1,4 +1,5 @@
 import uuid
+import copy
 
 import networkx as nx
 from shapely import MultiPoint, Point
@@ -10,7 +11,10 @@ from shift.graph.openstreet_graph_builder import OpenStreetGraphBuilder
 from shift.openstreet_roads import get_road_network
 from shift.utils.mesh_network import get_mesh_network
 from shift.utils.polygon_from_points import get_polygon_from_points
-from shift.utils.split_network_edges import split_network_edges
+from shift.utils.split_network_edges import (
+    get_distance_between_points,
+    split_network_edges,
+)
 
 
 class PRSG(OpenStreetGraphBuilder):
@@ -62,6 +66,22 @@ class PRSG(OpenStreetGraphBuilder):
 
         return reduced_network
 
+    def _extend_road_network(self, graph: nx.Graph, groups: list[GroupModel]) -> nx.Graph:
+        """Internal method to extend primary network if necessary."""
+
+        copied_graph = copy.deepcopy(graph)
+        for group in groups:
+            node = self._get_nearest_nodes(copied_graph, [group.center])[0]
+            distance_to_road = get_distance_between_points(
+                group.center,
+                GeoLocation(copied_graph.nodes[node]["x"], copied_graph.nodes[node]["y"]),
+            )
+            if distance_to_road.to("m").magnitude > 20:
+                node_name = str(uuid.uuid4())
+                copied_graph.add_node(node_name, x=group.center.longitude, y=group.center.latitude)
+                copied_graph.add_edge(node_name, node)
+        return copied_graph
+
     def build_primary_network(self) -> nx.Graph:
         """Internal method for building primary network.
 
@@ -71,11 +91,14 @@ class PRSG(OpenStreetGraphBuilder):
         """
         points = [point for group in self.groups for point in group.points]
         road_network_ = get_road_network(get_polygon_from_points(points, self.buffer))
+        road_network_ = self._extend_road_network(road_network_, self.groups)
         road_network = split_network_edges(road_network_, split_length=Distance(150, "m"))
         nearest_nodes = self._get_nearest_nodes(
-            road_network, [c.center for c in self.groups] + [self.source_location]
+            road_network,
+            [c.center for c in self.groups] + [self.source_location],
         )
-        return self._get_steiner_tree(
+        primary_network = self._get_steiner_tree(
             road_network,
             nearest_nodes,
         )
+        return primary_network
