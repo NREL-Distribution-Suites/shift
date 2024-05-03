@@ -292,7 +292,6 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         dist_network = nx.relabel_nodes(
             dist_network, {node: str(node) for node in list(dist_network.nodes)}
         )
-
         substation_node = self._get_nearest_nodes(dist_network, [self.source_location])[0]
         transformer_nodes = self._get_nearest_nodes(dist_network, [c.center for c in self.groups])
         load_nodes, new_transformer_nodes = [], []
