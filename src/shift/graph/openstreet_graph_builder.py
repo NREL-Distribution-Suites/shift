@@ -70,6 +70,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         self.groups = groups
         self.source_location = source_location
         self.buffer = buffer
+        self.point_node_mapping = {}
 
     @staticmethod
     def _get_tuple_to_node_mapper(graph: nx.Graph) -> dict[tuple, str]:
@@ -140,7 +141,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
 
     @abstractmethod
     def build_secondary_network(self, group: GroupModel) -> nx.Graph:
-        """Internal method to build secondary network.
+        """Abstract method to build secondary network.
 
         Parameters
         ----------
@@ -155,12 +156,21 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
 
     @abstractmethod
     def build_primary_network(self) -> nx.Graph:
-        """Internal method for building primary network.
+        """Abstract method for building primary network.
 
         Returns
         -------
         nx.Graph
         """
+
+    def get_point_node_mapping(self) -> dict[GeoLocation, str]:
+        """Method to return parcel node mapping.
+
+        Returns
+        -------
+        dict[GeoLocation, str]
+        """
+        return self.point_node_mapping
 
     def _get_node_assets_mapper(
         self, asset_nodes: dict[VALID_NODE_TYPES, list[str]]
@@ -294,12 +304,13 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         )
         substation_node = self._get_nearest_nodes(dist_network, [self.source_location])[0]
         transformer_nodes = self._get_nearest_nodes(dist_network, [c.center for c in self.groups])
-        load_nodes, new_transformer_nodes = [], []
+        new_transformer_nodes = []
         for tr_node, group in zip(transformer_nodes, self.groups):
             logger.info(f"Building secondary for {group.center}: {tr_node}")
 
             secondary_graph = self.build_secondary_network(group)
-            load_nodes += self._get_nearest_nodes(secondary_graph, group.points)
+            sec_loads = self._get_nearest_nodes(secondary_graph, group.points)
+            self.point_node_mapping.update(dict(zip(group.points, sec_loads)))
             tr_location = GeoLocation(
                 dist_network.nodes[tr_node]["x"], dist_network.nodes[tr_node]["y"]
             )
@@ -318,6 +329,6 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
             new_transformer_nodes,
             asset_nodes={
                 DistributionVoltageSource: [substation_node],
-                DistributionLoad: load_nodes,
+                DistributionLoad: list(self.point_node_mapping.values()),
             },
         )
