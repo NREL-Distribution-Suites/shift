@@ -33,6 +33,10 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                     ParcelModel(
                         name=name,
                         geometry=GeoLocation(*list(geometry_obj.coords)[0]),
+                        building_type=geometry['building'],
+                        city=geometry['addr:city'],
+                        state=geometry['addr:state'],
+                        postal_address=geometry['addr:postcode'],
                     )
                 )
             case "Polygon":
@@ -40,6 +44,10 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                     ParcelModel(
                         name=name,
                         geometry=[GeoLocation(*coord) for coord in geometry_obj.exterior.coords],
+                        building_type=geometry['building'],
+                        city=geometry['addr:city'],
+                        state=geometry['addr:state'],
+                        postal_address=geometry['addr:postcode'],
                     )
                 )
             case "MultiPolygon":
@@ -50,6 +58,10 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                             GeoLocation(*coord)
                             for coord in geometry_obj.convex_hull.exterior.coords
                         ],
+                        building_type=geometry['building'],
+                        city=geometry['addr:city'],
+                        state=geometry['addr:state'],
+                        postal_address=geometry['addr:postcode'],
                     )
                 )
             case _:

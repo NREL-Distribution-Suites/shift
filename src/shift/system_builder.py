@@ -7,7 +7,7 @@ from gdm import (
     DistributionSystem,
     DistributionBus,
     VoltageTypes,
-    DistributionBranch,
+    DistributionBranchBase,
     DistributionTransformer,
     Phase,
     DistributionTransformerEquipment,
@@ -77,7 +77,7 @@ class DistributionSystemBuilder:
                     f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
                 )
                 raise NotImplementedError(msg)
-            if issubclass(edge_data.edge_type, DistributionBranch):
+            if issubclass(edge_data.edge_type, DistributionBranchBase):
                 self._add_branch(from_node, to_node, edge_data)
             elif issubclass(edge_data.edge_type, DistributionTransformer):
                 self._add_transformer(from_node, to_node, edge_data)

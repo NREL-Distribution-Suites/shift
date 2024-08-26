@@ -7,7 +7,7 @@ from gdm.dataset.dataset_system import DatasetSystem
 from gdm.quantities import PositiveApparentPower, PositiveCurrent, PositiveVoltage
 from gdm import (
     DistributionTransformer,
-    DistributionBranch,
+    DistributionBranchBase,
     Phase,
     DistributionTransformerEquipment,
     DistributionLoad,
@@ -177,7 +177,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
                         self.voltage_mapper.node_voltage_mapping[to_node],
                     ],
                 )
-            elif issubclass(edge.edge_type, DistributionBranch):
+            elif issubclass(edge.edge_type, DistributionBranchBase):
                 kv = self.voltage_mapper.node_voltage_mapping[from_node].to("kilovolt").magnitude
                 kva = served_load.to("kilova").magnitude
                 is_split_phase = Phase.S1 in from_phases or Phase.S2 in from_phases
