@@ -153,7 +153,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
             raise ValueError(msg)
 
         branches = list(self.catalog_sys.get_components(type_, filter_func=filter_func))
-        branches = [el for el in branches if type(el) == type_]
+        branches = [el for el in branches if isinstance(el, type_)]
         if not branches:
             msg = f"Equipment of type {type_} not found in catalog system."
             raise EquipmentNotFoundError(msg)
