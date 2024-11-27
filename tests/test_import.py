@@ -1,6 +1,6 @@
-import pkg_resources
+import importlib.metadata
 
 
 def test_shift_version():
     """Prints shifts version."""
-    print(pkg_resources.get_distribution("NREL-shift").version)
+    print(importlib.metadata.version("NREL-shift"))

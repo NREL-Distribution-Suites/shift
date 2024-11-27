@@ -8,7 +8,7 @@ from gdm import (
     DistributionSolar,
     DistributionCapacitor,
     DistributionVoltageSource,
-    DistributionBranch,
+    DistributionBranchBase,
     DistributionTransformer,
 )
 from infrasys import Location
@@ -89,7 +89,7 @@ VALID_NODE_TYPES = Annotated[
 
 
 VALID_EDGE_TYPES = Annotated[
-    Type[DistributionBranch] | Type[DistributionTransformer],
+    Type[DistributionBranchBase] | Type[DistributionTransformer],
     Field(..., description="Possible edge types."),
 ]
 
@@ -119,7 +119,7 @@ class EdgeModel(BaseModel):
             msg = f"{self.length=} must be None for {self.edge_type=}"
             raise ValueError(msg)
 
-        if self.edge_type is DistributionBranch and self.length is None:
+        if self.edge_type is DistributionBranchBase and self.length is None:
             msg = f"{self.length=} must not be None for {self.edge_type=}"
             raise ValueError(msg)
         return self
