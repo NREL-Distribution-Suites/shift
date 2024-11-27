@@ -40,7 +40,7 @@ class DistributionGraph:
 
     >>> from shift import EdgeModel
     >>> dgraph.add_edge("node_1", "node_2", edge_data=EdgeModel(name="node1_node2",
-        edge_type=DistributionBranch))
+        edge_type=DistributionBranchBase))
 
     Getting node data.
 

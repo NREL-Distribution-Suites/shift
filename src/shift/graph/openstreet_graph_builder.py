@@ -6,7 +6,7 @@ import networkx as nx
 from networkx.algorithms import approximation as ax
 from loguru import logger
 from gdm import (
-    DistributionBranch,
+    DistributionBranchBase,
     DistributionVoltageSource,
     DistributionLoad,
     DistributionTransformer,
@@ -279,7 +279,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
                 *edge,
                 edge_data=EdgeModel(
                     name=str(uuid.uuid4()),
-                    edge_type=DistributionBranch,
+                    edge_type=DistributionBranchBase,
                     length=get_distance_between_points(
                         *[GeoLocation(loc.x, loc.y) for loc in locs]
                     ),
