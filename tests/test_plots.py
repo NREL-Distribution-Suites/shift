@@ -24,7 +24,7 @@ def test_add_parcel_to_plot(get_plot_manager):
     add_parcels_to_plot(
         parcels=[
             ParcelModel(
-                name="parcel-1", 
+                name="parcel-1",
                 geometry=GeoLocation(0, 0),
                 city="",
                 state="",

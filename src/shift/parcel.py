@@ -43,7 +43,8 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                         if "addr:state" in geometry and isinstance(geometry["addr:state"], str)
                         else "",
                         postal_address=geometry["addr:postcode"]
-                        if "addr:postcode" in geometry and isinstance(geometry["addr:postcode"], str)
+                        if "addr:postcode" in geometry
+                        and isinstance(geometry["addr:postcode"], str)
                         else "",
                     )
                 )
@@ -62,7 +63,8 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                         if "addr:state" in geometry and isinstance(geometry["addr:state"], str)
                         else "",
                         postal_address=geometry["addr:postcode"]
-                        if "addr:postcode" in geometry and isinstance(geometry["addr:postcode"], str)
+                        if "addr:postcode" in geometry
+                        and isinstance(geometry["addr:postcode"], str)
                         else "",
                     )
                 )
@@ -84,7 +86,8 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                         if "addr:state" in geometry and isinstance(geometry["addr:state"], str)
                         else "",
                         postal_address=geometry["addr:postcode"]
-                        if "addr:postcode" in geometry and isinstance(geometry["addr:postcode"], str)
+                        if "addr:postcode" in geometry
+                        and isinstance(geometry["addr:postcode"], str)
                         else "",
                     )
                 )
