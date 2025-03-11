@@ -173,7 +173,7 @@ class BalancedPhaseMapper(BasePhaseMapper):
 
         allocated_trs = set([el for item in allocations for el in item])
         if set(tr_names) != allocated_trs:
-            msg = f"Missing mapping for transformers: {tr_names -  allocated_trs}"
+            msg = f"Missing mapping for transformers: {tr_names - allocated_trs}"
             raise AllocationMappingError(msg)
 
         for allocation, phases in zip(allocations, ht_phases):

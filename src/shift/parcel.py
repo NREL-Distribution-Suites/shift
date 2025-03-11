@@ -33,22 +33,37 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                     ParcelModel(
                         name=name,
                         geometry=GeoLocation(*list(geometry_obj.coords)[0]),
-                        building_type=geometry['building'] if isinstance(geometry['building'], str) else "",
-                        city=geometry['addr:city']if isinstance(geometry['addr:city'], str) else "" ,
-                        state=geometry['addr:state'] if isinstance(geometry['addr:state'], str) else "",
-                        postal_address=geometry['addr:postcode'] if isinstance(geometry['addr:postcode'], str) else "",
+                        building_type=geometry["building"]
+                        if isinstance(geometry["building"], str)
+                        else "",
+                        city=geometry["addr:city"]
+                        if isinstance(geometry["addr:city"], str)
+                        else "",
+                        state=geometry["addr:state"]
+                        if isinstance(geometry["addr:state"], str)
+                        else "",
+                        postal_address=geometry["addr:postcode"]
+                        if isinstance(geometry["addr:postcode"], str)
+                        else "",
                     )
                 )
             case "Polygon":
                 parcels.append(
-                    
                     ParcelModel(
                         name=name,
                         geometry=[GeoLocation(*coord) for coord in geometry_obj.exterior.coords],
-                        building_type=geometry['building'] if isinstance(geometry['building'], str) else "",
-                        city=geometry['addr:city']if isinstance(geometry['addr:city'], str) else "" ,
-                        state=geometry['addr:state'] if isinstance(geometry['addr:state'], str) else "",
-                        postal_address=geometry['addr:postcode'] if isinstance(geometry['addr:postcode'], str) else "",
+                        building_type=geometry["building"]
+                        if isinstance(geometry["building"], str)
+                        else "",
+                        city=geometry["addr:city"]
+                        if isinstance(geometry["addr:city"], str)
+                        else "",
+                        state=geometry["addr:state"]
+                        if isinstance(geometry["addr:state"], str)
+                        else "",
+                        postal_address=geometry["addr:postcode"]
+                        if isinstance(geometry["addr:postcode"], str)
+                        else "",
                     )
                 )
             case "MultiPolygon":
@@ -59,10 +74,18 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                             GeoLocation(*coord)
                             for coord in geometry_obj.convex_hull.exterior.coords
                         ],
-                        building_type=geometry['building'] if isinstance(geometry['building'], str) else "",
-                        city=geometry['addr:city']if isinstance(geometry['addr:city'], str) else "" ,
-                        state=geometry['addr:state'] if isinstance(geometry['addr:state'], str) else "",
-                        postal_address=geometry['addr:postcode'] if isinstance(geometry['addr:postcode'], str) else "",
+                        building_type=geometry["building"]
+                        if isinstance(geometry["building"], str)
+                        else "",
+                        city=geometry["addr:city"]
+                        if isinstance(geometry["addr:city"], str)
+                        else "",
+                        state=geometry["addr:state"]
+                        if isinstance(geometry["addr:state"], str)
+                        else "",
+                        postal_address=geometry["addr:postcode"]
+                        if isinstance(geometry["addr:postcode"], str)
+                        else "",
                     )
                 )
             case _:

@@ -42,8 +42,9 @@ class ParcelModel(BaseModel):
     building_type: Annotated[str, Field(..., description="Type of building.")]
     city: Annotated[str, Field(..., description="City the parcel is locatied in.")]
     state: Annotated[str, Field(..., description="State the parcel is locatied in.")]
-    postal_address: Annotated[str, Field(..., description="Postal code the parcel is locatied in.")]
-    
+    postal_address: Annotated[
+        str, Field(..., description="Postal code the parcel is locatied in.")
+    ]
 
 
 class GroupModel(BaseModel):
@@ -83,6 +84,7 @@ class TransformerPhaseMapperModel(BaseModel):
     tr_capacity: PositiveApparentPower
     location: Location
 
+
 VALID_NODE_TYPES = Annotated[
     Type[DistributionLoad]
     | Type[DistributionSolar]
@@ -96,8 +98,10 @@ VALID_EDGE_TYPES = Annotated[
     Field(..., description="Possible edge types."),
 ]
 
+
 class NodeModel(BaseModel):
     """Interface for node model."""
+
     name: Annotated[str, Field(..., description="Name of the node.")]
     location: Annotated[Location, Field(..., description="Location of node.")]
     assets: Annotated[
@@ -105,8 +109,10 @@ class NodeModel(BaseModel):
         Field({}, description="Set of asset types attached to node."),
     ]
 
+
 class EdgeModel(BaseModel):
     """Interface for edge model."""
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
     name: Annotated[str, Field(..., description="Name of the node.")]
     edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
