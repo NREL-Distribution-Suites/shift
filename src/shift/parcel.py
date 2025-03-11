@@ -26,29 +26,46 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
     for idx, geometry in enumerate(geo_df.to_dict(orient="records")):
         name = f"parcel_{idx}"
         geometry_obj = geometry["geometry"]
-
+        print(geometry)
         match geometry_obj.geom_type:
             case "Point":
                 parcels.append(
                     ParcelModel(
                         name=name,
                         geometry=GeoLocation(*list(geometry_obj.coords)[0]),
-                        building_type=geometry['building'] if isinstance(geometry['building'], str) else "",
-                        city=geometry['addr:city']if isinstance(geometry['addr:city'], str) else "" ,
-                        state=geometry['addr:state'] if isinstance(geometry['addr:state'], str) else "",
-                        postal_address=geometry['addr:postcode'] if isinstance(geometry['addr:postcode'], str) else "",
+                        building_type=geometry["building"]
+                        if "building" in geometry and isinstance(geometry["building"], str)
+                        else "",
+                        city=geometry["addr:city"]
+                        if "addr:city" in geometry and isinstance(geometry["addr:city"], str)
+                        else "",
+                        state=geometry["addr:state"]
+                        if "addr:state" in geometry and isinstance(geometry["addr:state"], str)
+                        else "",
+                        postal_address=geometry["addr:postcode"]
+                        if "addr:postcode" in geometry
+                        and isinstance(geometry["addr:postcode"], str)
+                        else "",
                     )
                 )
             case "Polygon":
                 parcels.append(
-                    
                     ParcelModel(
                         name=name,
                         geometry=[GeoLocation(*coord) for coord in geometry_obj.exterior.coords],
-                        building_type=geometry['building'] if isinstance(geometry['building'], str) else "",
-                        city=geometry['addr:city']if isinstance(geometry['addr:city'], str) else "" ,
-                        state=geometry['addr:state'] if isinstance(geometry['addr:state'], str) else "",
-                        postal_address=geometry['addr:postcode'] if isinstance(geometry['addr:postcode'], str) else "",
+                        building_type=geometry["building"]
+                        if "building" in geometry and isinstance(geometry["building"], str)
+                        else "",
+                        city=geometry["addr:city"]
+                        if "addr:city" in geometry and isinstance(geometry["addr:city"], str)
+                        else "",
+                        state=geometry["addr:state"]
+                        if "addr:state" in geometry and isinstance(geometry["addr:state"], str)
+                        else "",
+                        postal_address=geometry["addr:postcode"]
+                        if "addr:postcode" in geometry
+                        and isinstance(geometry["addr:postcode"], str)
+                        else "",
                     )
                 )
             case "MultiPolygon":
@@ -59,10 +76,19 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
                             GeoLocation(*coord)
                             for coord in geometry_obj.convex_hull.exterior.coords
                         ],
-                        building_type=geometry['building'] if isinstance(geometry['building'], str) else "",
-                        city=geometry['addr:city']if isinstance(geometry['addr:city'], str) else "" ,
-                        state=geometry['addr:state'] if isinstance(geometry['addr:state'], str) else "",
-                        postal_address=geometry['addr:postcode'] if isinstance(geometry['addr:postcode'], str) else "",
+                        building_type=geometry["building"]
+                        if "building" in geometry and isinstance(geometry["building"], str)
+                        else "",
+                        city=geometry["addr:city"]
+                        if "addr:city" in geometry and isinstance(geometry["addr:city"], str)
+                        else "",
+                        state=geometry["addr:state"]
+                        if "addr:state" in geometry and isinstance(geometry["addr:state"], str)
+                        else "",
+                        postal_address=geometry["addr:postcode"]
+                        if "addr:postcode" in geometry
+                        and isinstance(geometry["addr:postcode"], str)
+                        else "",
                     )
                 )
             case _:
@@ -120,7 +146,7 @@ def parcels_from_location(
     >>> from infrasys.quantities import Distance
     >>> get_parcels("Fort Worth, Texas", Distance(100, "m"))
     """
-    logger.info(f"Attempting to fecth parcels for {location}")
+    logger.info(f"Attempting to fetch parcels for {location}")
     tags = {"building": True}
     if isinstance(location, str):
         return parcels_from_geodataframe(

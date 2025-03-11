@@ -71,7 +71,9 @@ class DistributionSystemBuilder:
 
         for from_node, to_node, edge_data in self.dist_graph.get_edges():
             equipment = self.equipment_mapper.edge_equipment_mapping[edge_data.name]
-            if not isinstance(equipment, EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type)):
+
+            if type(equipment) is not EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type):
+
                 msg = (
                     f"{equipment=} is not supported for {edge_data=}"
                     f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
@@ -93,6 +95,7 @@ class DistributionSystemBuilder:
             phases=self.phase_mapper.asset_phase_mapping[bus_name][asset_type],
             equipment=self.equipment_mapper.node_asset_equipment_mapping[bus_name][asset_type],
         )
+        asset_obj.pprint()
         self._system.add_component(asset_obj)
 
     def _add_bus(self, node_obj: NodeModel):
@@ -128,9 +131,9 @@ class DistributionSystemBuilder:
             [
                 wdg.nominal_voltage.to("kilovolt").magnitude
                 / (
-                    1
+                    1 / math.sqrt(3)
                     if wdg.voltage_type == VoltageTypes.LINE_TO_GROUND
-                    else math.sqrt(3)
+                    else 1
                     if not tr_equipment.is_center_tapped
                     else 2
                 )

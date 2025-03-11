@@ -40,7 +40,7 @@ def get_road_network(
     --------
     >>> get_road_network("Fort Worth, Texas", Distance(100, "m"))
     """
-    logger.info(f"Attempting to fecth road network for {location}")
+    logger.debug(f"Attempting to fecth road network for {location}")
 
     if isinstance(location, str):
         graph = ox.graph_from_address(

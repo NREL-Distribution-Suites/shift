@@ -306,7 +306,7 @@ class OpenStreetGraphBuilder(BaseGraphBuilder):
         transformer_nodes = self._get_nearest_nodes(dist_network, [c.center for c in self.groups])
         new_transformer_nodes = []
         for tr_node, group in zip(transformer_nodes, self.groups):
-            logger.info(f"Building secondary for {group.center}: {tr_node}")
+            logger.debug(f"Building secondary for {group.center}: {tr_node}")
 
             secondary_graph = self.build_secondary_network(group)
             sec_loads = self._get_nearest_nodes(secondary_graph, group.points)
