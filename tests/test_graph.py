@@ -2,7 +2,7 @@ import pytest
 from gdm import (
     DistributionVoltageSource,
     DistributionLoad,
-    DistributionBranch,
+    DistributionBranchBase,
     DistributionTransformer,
 )
 from infrasys import Location
@@ -41,7 +41,7 @@ def distribution_graph():
         node_1,
         node_3,
         edge_data=EdgeModel(
-            name="line-2", edge_type=DistributionBranch, length=PositiveDistance(1, "m")
+            name="line-2", edge_type=DistributionBranchBase, length=PositiveDistance(1, "m")
         ),
     )
 
@@ -71,7 +71,7 @@ def test_edge_addition():
     node_2 = NodeModel(name="node_2", location=Location(x=1, y=2))
     graph.add_nodes([node_1, node_2])
     edge_data = EdgeModel(
-        name="line-1", edge_type=DistributionBranch, length=PositiveDistance(1, "m")
+        name="line-1", edge_type=DistributionBranchBase, length=PositiveDistance(1, "m")
     )
     graph.add_edge(
         node_1.name,
@@ -115,7 +115,7 @@ def test_adding_edge_that_already_exists(distribution_graph):
             "node_1",
             "node_3",
             edge_data=EdgeModel(
-                name="line-1", edge_type=DistributionBranch, length=PositiveDistance(1, "m")
+                name="line-1", edge_type=DistributionBranchBase, length=PositiveDistance(1, "m")
             ),
         )
 

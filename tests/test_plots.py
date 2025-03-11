@@ -22,7 +22,16 @@ def test_plot_manager(get_plot_manager):
 def test_add_parcel_to_plot(get_plot_manager):
     """Function to test adding parcels to plot manager."""
     add_parcels_to_plot(
-        parcels=[ParcelModel(name="parcel-1", geometry=GeoLocation(0, 0))],
+        parcels=[
+            ParcelModel(
+                name="parcel-1", 
+                geometry=GeoLocation(0, 0),
+                city="",
+                state="",
+                postal_address="",
+                building_type="",
+            )
+        ],
         plot_manager=get_plot_manager,
     )
 
