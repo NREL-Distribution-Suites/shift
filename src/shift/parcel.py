@@ -120,7 +120,7 @@ def parcels_from_location(
     >>> from infrasys.quantities import Distance
     >>> get_parcels("Fort Worth, Texas", Distance(100, "m"))
     """
-    logger.info(f"Attempting to fecth parcels for {location}")
+    logger.info(f"Attempting to fetch parcels for {location}")
     tags = {"building": True}
     if isinstance(location, str):
         return parcels_from_geodataframe(
