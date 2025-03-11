@@ -71,7 +71,9 @@ class DistributionSystemBuilder:
 
         for from_node, to_node, edge_data in self.dist_graph.get_edges():
             equipment = self.equipment_mapper.edge_equipment_mapping[edge_data.name]
+
             if type(equipment) is not EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type):
+
                 msg = (
                     f"{equipment=} is not supported for {edge_data=}"
                     f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
