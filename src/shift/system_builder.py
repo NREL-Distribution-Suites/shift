@@ -73,7 +73,6 @@ class DistributionSystemBuilder:
             equipment = self.equipment_mapper.edge_equipment_mapping[edge_data.name]
 
             if type(equipment) is not EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type):
-
                 msg = (
                     f"{equipment=} is not supported for {edge_data=}"
                     f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"

@@ -10,7 +10,7 @@ upon which equipment is used by equipment mapper.
 
 
 ```python
-from shift import TransformerPhaseMapperModel, TransformerTypes, BalancedPhaseMapper
+from shift import TransformerPhaseMapperModel, TransformerTypes, BalancedPhaseMapper, add_phase_mapper_to_plot
 from gdm import DistributionTransformer
 from gdm.quantities import PositiveApparentPower
 
@@ -28,5 +28,8 @@ mapper = [
     if el.edge_type is DistributionTransformer
 ]
 
-phase_mapper = BalancedPhaseMapper(new_graph, method="kmeans", mapper=mapper)
+phase_mapper = BalancedPhaseMapper(new_graph, method="greedy", mapper=mapper)
+plot_manager = PlotManager(center=coordinate_center)
+add_phase_mapper_to_plot(phase_mapper, plot_manager)
+plot_manager.show()
 ```

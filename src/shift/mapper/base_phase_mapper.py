@@ -34,7 +34,8 @@ class BasePhaseMapper(ABC):
     def _validate_asset_phases(self):
         """Internal method to validate asset phases with respect to node phases."""
         node_phases = self.node_phase_mapping
-        for node, asset_map in self.asset_phase_mapping().items():
+        for node, asset_map in self.asset_phase_mapping.items():
+            print(node, asset_map)
             phs = set([el for item in asset_map.values() for el in item])
             if not phs.issubset(node_phases[node]):
                 msg = f"{phs=} is not subset of {node_phases[node]=}"

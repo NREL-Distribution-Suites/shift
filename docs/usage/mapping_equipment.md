@@ -11,36 +11,53 @@ We are mapping load kW based on parcels area in this example. Assuming `points` 
 
 
 ```python
+from functools import cached_property
+from pathlib import Path
+
 from shift import (
     EdgeEquipmentMapper, 
     BaseVoltageMapper,
     BasePhaseMapper,
     ParcelModel,
-    GeoLocation
+    GeoLocation,
+    NodeModel,
+    
 )
 
 from gdm import (
-    DistributionGraph,
-    LoadEquipment,
-    PhaseLoadEquipment,
     PhaseVoltageSourceEquipment,
-    VoltageSourceEquipment
+    DistributionVoltageSource,
+    VoltageSourceEquipment,
+    PhaseLoadEquipment,
+    DistributionSystem,
+    DistributionLoad,
+    LoadEquipment,
+    Phase,
 )
 from gdm.quantities import (
     ReactivePower,
     Reactance
 )
 
-from infrasys import System
-from infrasys.quantities import ActivePower, Resistance, Voltage, Angle
+from shapely.geometry import Polygon
 
-catalog_sys = DistributionSystem.from_json("p4u.json")
+from scipy.spatial import KDTree
+
+from infrasys.quantities import ActivePower, Resistance, Voltage, Angle
+from infrasys import System
+import shift
+
+BASE_SHIFT_PATH =Path(shift.__file__).parent.parent.parent
+MODELS_FOLFER =  BASE_SHIFT_PATH/"tests"/"models"
+
+print(f"{MODELS_FOLFER=}")
+catalog_sys = DistributionSystem.from_json(MODELS_FOLFER / "p1rhs7_1247.json")
 
 class AreaBasedLoadMapper(EdgeEquipmentMapper):
 
     def __init__(
         self,
-        graph: DistributionGraph,
+        graph,
         catalog_sys: System,
         voltage_mapper: BaseVoltageMapper,
         phase_mapper: BasePhaseMapper,
@@ -54,7 +71,7 @@ class AreaBasedLoadMapper(EdgeEquipmentMapper):
         """Internal function to return point"""
         tree = KDTree(_get_parcel_points(self.points))
         _, idx = tree.query([GeoLocation(node.location.x, node.location.y)], k=1)
-        first_indexes = [el[0] for el in idx]
+        first_indexes = [el for el in idx]
         nearest_point: ParcelModel = self.points[first_indexes[0]]
         return (
             Polygon(nearest_point.geometry).area if isinstance(nearest_point.geometry, list) else 0
@@ -80,12 +97,14 @@ class AreaBasedLoadMapper(EdgeEquipmentMapper):
                 phase_loads=[
                     PhaseLoadEquipment(
                         name=f"load_{node.name}_{idx}",
-                        z_real=ActivePower(0, "kilowatt"),
-                        i_real=ActivePower(0, "kilowatt"),
-                        p_real=ActivePower(kw / num_phase, "kilowatt"),
-                        z_imag=ReactivePower(0, "kilovar"),
-                        i_imag=ReactivePower(0, "kilovar"),
-                        p_imag=ReactivePower(0, "kilovar"),
+                        real_power=ActivePower(kw / num_phase, "kilowatt"),
+                        reactive_power=ReactivePower(0, "kilovar"),
+                        z_real=0,
+                        i_real=0,
+                        p_real=1,
+                        z_imag=0,
+                        i_imag=0,
+                        p_imag=1,
                     )
                     for idx in range(num_phase)
                 ],
