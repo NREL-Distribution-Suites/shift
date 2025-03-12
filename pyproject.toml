@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nrel-shift"
-dynamic = ["version"]
+version = "0.2.0"
 description = "Framework for developing synthetic distribution feeder model."
 readme = "README.md"
 requires-python = ">=3.10"
