@@ -5,14 +5,14 @@ generate distribution graph.
 
 
 ```python
-from shift import ParcelModel, GeoLocation, get_kmeans_clusters, PRSG
+from shift import ParcelModel, get_kmeans_clusters, PRSG
 
 def _get_parcel_points(parcels: list[ParcelModel]) -> list[GeoLocation]:
     return [el.geometry[0] if isinstance(el.geometry, list) else el.geometry for el in parcels]
 
 
-num_clusters = int(len(parcels) / 10)
-clusters = get_kmeans_clusters(max([num_clusters, 1]), _get_parcel_points(parcels))
+num_clusters = int(len(points) / 2)
+clusters = get_kmeans_clusters(max([num_clusters, 1]), _get_parcel_points(points))
 
 builder = PRSG(
     groups=clusters,
@@ -30,8 +30,7 @@ The node closest to `source_location` will be treated as substation.
 If you want to visualize this graph, you can again use `PlotManager`.
 
 ```python
-from shift import add_distribution_graph, PlotManager
-plot_manager = PlotManager(center=GeoLocation(-87.62, 41.095))
-add_distribution_graph(graph,plot_manager )
+from shift import add_distribution_graph_to_plot, PlotManager
+add_distribution_graph_to_plot(graph, plot_manager)
 plot_manager.show()
 ```

@@ -8,8 +8,8 @@ Let's use transformer voltage mapper class to map voltages to nodes
 using transformer voltages.
 
 ```python
-from shift import TransformerVoltageMapper, TransformerVoltageModel
-from gdm.quantities importPositiveVoltage
+from shift import TransformerVoltageMapper, TransformerVoltageModel, add_voltage_mapper_to_plot
+from gdm.quantities import PositiveVoltage
 from gdm import DistributionTransformer
 
 voltage_mapper = TransformerVoltageMapper(
@@ -17,11 +17,14 @@ voltage_mapper = TransformerVoltageMapper(
     xfmr_voltage=[
         TransformerVoltageModel(
             name=el.name,
-            voltages=[PositiveVoltage(2.3, "kilovolt"), PositiveVoltage(120, "volt")],
+            voltages=[PositiveVoltage(7.2, "kilovolt"), PositiveVoltage(120, "volt")],
         )
         for _, _, el in new_graph.get_edges()
         if el.edge_type is DistributionTransformer
     ],
 )
+
+add_voltage_mapper_to_plot(voltage_mapper, plot_manager)
+plot_manager.show()
 ```
 

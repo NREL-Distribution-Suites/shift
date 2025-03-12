@@ -12,6 +12,7 @@ license = "BSD-3-clause"
 keywords = []
 authors = [
   { name = "Kapil Duwadi", email = "Kapil.Duwadi@nrel.gov" },
+  { name = "Aadil Latif", email = "Aadil.Latif@nrel.gov" },
   { name = "Erik Pohl", email = "Erik.Pohl@nrel.gov" },
 ]
 classifiers = [
