@@ -7,7 +7,7 @@ from gdm.distribution.components import (
     MatrixImpedanceSwitch,
     MatrixImpedanceRecloser,
 )
-from gdm.distribution.equipment import(
+from gdm.distribution.equipment import (
     SequenceImpedanceBranchEquipment,
     MatrixImpedanceBranchEquipment,
     GeometryBranchEquipment,
