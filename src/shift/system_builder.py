@@ -3,14 +3,16 @@ import operator
 from uuid import uuid4
 import math
 
-from gdm import (
-    DistributionSystem,
-    DistributionBus,
-    VoltageTypes,
-    DistributionBranchBase,
+from gdm.distribution.equipment import DistributionTransformerEquipment
+from gdm.distribution import DistributionSystem
+from gdm.distribution.components import (
     DistributionTransformer,
+    DistributionBranchBase,
+    DistributionBus,
+)
+from gdm.distribution.enums import (
+    VoltageTypes,
     Phase,
-    DistributionTransformerEquipment,
 )
 from gdm.quantities import PositiveVoltage
 import numpy as np

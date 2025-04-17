@@ -25,7 +25,7 @@ dependencies = [
   "scikit-learn",
   "plotly",
   "geopy",
-  "grid-data-models",
+  "grid-data-models~=2.0.0",
   "importlib-metadata",
 ]
 

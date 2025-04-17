@@ -2,7 +2,7 @@ from typing import Callable, Iterable
 import copy
 
 import networkx as nx
-from gdm import DistributionVoltageSource
+from gdm.distribution.components import DistributionVoltageSource
 
 
 from shift.exceptions import (

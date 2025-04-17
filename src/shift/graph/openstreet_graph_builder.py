@@ -5,11 +5,11 @@ import uuid
 import networkx as nx
 from networkx.algorithms import approximation as ax
 from loguru import logger
-from gdm import (
-    DistributionBranchBase,
+from gdm.distribution.components import (
     DistributionVoltageSource,
-    DistributionLoad,
     DistributionTransformer,
+    DistributionBranchBase,
+    DistributionLoad,
 )
 from infrasys.quantities import Distance
 from infrasys import Location

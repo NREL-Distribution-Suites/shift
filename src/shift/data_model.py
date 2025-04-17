@@ -3,7 +3,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 from gdm.quantities import PositiveVoltage, PositiveApparentPower, PositiveDistance
-from gdm import (
+from gdm.distribution.components import (
     DistributionLoad,
     DistributionSolar,
     DistributionCapacitor,

@@ -1,15 +1,17 @@
-from gdm import (
+from gdm.distribution.components import (
     DistributionTransformer,
-    MatrixImpedanceBranchEquipment,
     MatrixImpedanceBranch,
-    SequenceImpedanceBranchEquipment,
     SequenceImpedanceBranch,
-    GeometryBranchEquipment,
     GeometryBranch,
-    MatrixImpedanceFuseEquipment,
     MatrixImpedanceFuse,
     MatrixImpedanceSwitch,
     MatrixImpedanceRecloser,
+)
+from gdm.distribution.equipment import(
+    SequenceImpedanceBranchEquipment,
+    MatrixImpedanceBranchEquipment,
+    GeometryBranchEquipment,
+    MatrixImpedanceFuseEquipment,
     MatrixImpedanceRecloserEquipment,
     MatrixImpedanceSwitchEquipment,
     DistributionTransformerEquipment,

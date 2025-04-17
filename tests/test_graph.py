@@ -1,9 +1,9 @@
 import pytest
-from gdm import (
+from gdm.distribution.components import (
     DistributionVoltageSource,
-    DistributionLoad,
-    DistributionBranchBase,
     DistributionTransformer,
+    DistributionBranchBase,
+    DistributionLoad,
 )
 from infrasys import Location
 from gdm.quantities import PositiveDistance

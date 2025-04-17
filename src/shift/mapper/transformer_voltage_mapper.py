@@ -2,7 +2,7 @@ from functools import cached_property
 from typing import Callable
 
 from gdm.quantities import PositiveVoltage
-from gdm import DistributionTransformer
+from gdm.distribution.components import DistributionTransformer
 
 import networkx as nx
 from shift.graph.distribution_graph import DistributionGraph

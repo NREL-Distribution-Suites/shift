@@ -5,17 +5,20 @@ from typing import Type
 from infrasys.component import Component
 from gdm.dataset.dataset_system import DatasetSystem
 from gdm.quantities import PositiveApparentPower, PositiveCurrent, PositiveVoltage
-from gdm import (
+from gdm.distribution.components import (
     DistributionTransformer,
     DistributionBranchBase,
-    Phase,
-    DistributionTransformerEquipment,
     DistributionLoad,
-    LoadEquipment,
+)
+from gdm.distribution.equipment import (
+    DistributionTransformerEquipment,
+    SequenceImpedanceBranchEquipment,
     MatrixImpedanceBranchEquipment,
     GeometryBranchEquipment,
-    SequenceImpedanceBranchEquipment,
+    LoadEquipment,
 )
+from gdm.distribution.enums import Phase
+
 import networkx as nx
 
 from shift.exceptions import EquipmentNotFoundError, WrongEquipmentAssigned
