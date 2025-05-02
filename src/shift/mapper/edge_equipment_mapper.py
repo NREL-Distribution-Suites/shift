@@ -110,7 +110,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
                 return False
             if num_phase < 3 and x.windings[0].num_phases != min(num_phase, 1):
                 return False
-            wdg_voltages = [wdg.nominal_voltage for wdg in x.windings]
+            wdg_voltages = [wdg.rated_voltage for wdg in x.windings]
             for v1, v2 in zip(
                 sorted(voltages, reverse=True), sorted(wdg_voltages, reverse=True)[: len(voltages)]
             ):

@@ -26,7 +26,6 @@ def parcels_from_geodataframe(geo_df: GeoDataFrame) -> list[ParcelModel]:
     for idx, geometry in enumerate(geo_df.to_dict(orient="records")):
         name = f"parcel_{idx}"
         geometry_obj = geometry["geometry"]
-        print(geometry)
         match geometry_obj.geom_type:
             case "Point":
                 parcels.append(

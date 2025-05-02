@@ -49,8 +49,6 @@ import shift
 
 BASE_SHIFT_PATH =Path(shift.__file__).parent.parent.parent
 MODELS_FOLFER =  BASE_SHIFT_PATH/"tests"/"models"
-
-print(f"{MODELS_FOLFER=}")
 catalog_sys = DistributionSystem.from_json(MODELS_FOLFER / "p1rhs7_1247.json")
 
 class AreaBasedLoadMapper(EdgeEquipmentMapper):
