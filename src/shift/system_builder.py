@@ -96,7 +96,7 @@ class DistributionSystemBuilder:
             phases=self.phase_mapper.asset_phase_mapping[bus_name][asset_type],
             equipment=self.equipment_mapper.node_asset_equipment_mapping[bus_name][asset_type],
         )
-        asset_obj.pprint()
+
         self._system.add_component(asset_obj)
 
     def _add_bus(self, node_obj: NodeModel):
@@ -105,7 +105,7 @@ class DistributionSystemBuilder:
             name=node_obj.name,
             phases=self.phase_mapper.node_phase_mapping[node_obj.name],
             coordinate=node_obj.location,
-            nominal_voltage=self.voltage_mapper.node_voltage_mapping[node_obj.name],
+            rated_voltage=self.voltage_mapper.node_voltage_mapping[node_obj.name],
             voltage_type=VoltageTypes.LINE_TO_GROUND,
         )
         self._system.add_component(bus)
@@ -130,7 +130,7 @@ class DistributionSystemBuilder:
         """Internal method to return winding phase voltages."""
         return PositiveVoltage(
             [
-                wdg.nominal_voltage.to("kilovolt").magnitude
+                wdg.rated_voltage.to("kilovolt").magnitude
                 / (
                     1 / math.sqrt(3)
                     if wdg.voltage_type == VoltageTypes.LINE_TO_GROUND
