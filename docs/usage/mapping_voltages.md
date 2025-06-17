@@ -9,7 +9,7 @@ using transformer voltages.
 
 ```python
 from shift import TransformerVoltageMapper, TransformerVoltageModel, add_voltage_mapper_to_plot
-from gdm.quantities import PositiveVoltage
+from gdm.quantities import Voltage
 from gdm import DistributionTransformer
 
 voltage_mapper = TransformerVoltageMapper(
@@ -17,7 +17,7 @@ voltage_mapper = TransformerVoltageMapper(
     xfmr_voltage=[
         TransformerVoltageModel(
             name=el.name,
-            voltages=[PositiveVoltage(7.2, "kilovolt"), PositiveVoltage(120, "volt")],
+            voltages=[Voltage(7.2, "kilovolt"), Voltage(120, "volt")],
         )
         for _, _, el in new_graph.get_edges()
         if el.edge_type is DistributionTransformer

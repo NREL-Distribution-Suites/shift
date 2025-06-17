@@ -5,14 +5,11 @@ import networkx as nx
 from geopy.distance import geodesic
 import numpy as np
 from infrasys.quantities import Distance
-from gdm.quantities import PositiveDistance
 
 from shift.data_model import GeoLocation
 
 
-def get_distance_between_points(
-    from_point: GeoLocation, to_point: GeoLocation
-) -> PositiveDistance:
+def get_distance_between_points(from_point: GeoLocation, to_point: GeoLocation) -> Distance:
     """Returns distance betwee two geo points.
 
     Parameters
@@ -25,12 +22,10 @@ def get_distance_between_points(
 
     Returns
     -------
-    PositiveDistance
+    Distance
     """
 
-    return PositiveDistance(
-        geodesic(*[reversed(point) for point in [from_point, to_point]]).m, "m"
-    )
+    return Distance(geodesic(*[reversed(point) for point in [from_point, to_point]]).m, "m")
 
 
 def split_network_edges(graph: nx.Graph, split_length: Distance) -> nx.Graph:

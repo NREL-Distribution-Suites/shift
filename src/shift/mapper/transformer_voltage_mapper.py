@@ -1,7 +1,7 @@
 from functools import cached_property
 from typing import Callable
 
-from gdm.quantities import PositiveVoltage
+from gdm.quantities import Voltage
 from gdm.distribution.components import DistributionTransformer
 
 import networkx as nx
@@ -49,7 +49,7 @@ class TransformerVoltageMapper(BaseVoltageMapper):
         self,
         nodes: list[str],
         xfmr: TransformerVoltageModel,
-        mapper: dict[str, PositiveVoltage],
+        mapper: dict[str, Voltage],
         compare_func: Callable,
     ):
         """Internal function to update voltage mapper."""
@@ -60,8 +60,8 @@ class TransformerVoltageMapper(BaseVoltageMapper):
                 mapper[node] = compare_func(xfmr.voltages)
 
     @cached_property
-    def node_voltage_mapping(self) -> dict[str, PositiveVoltage]:
-        node_voltages: dict[str, PositiveVoltage] = {}
+    def node_voltage_mapping(self) -> dict[str, Voltage]:
+        node_voltages: dict[str, Voltage] = {}
         dfs_tree = self.graph.get_dfs_tree()
         xfmrs_in_mapper = [xfmr.name for xfmr in self.xfmr_voltage]
         edges = self.graph.get_edges(filter_func=lambda x: x.name in xfmrs_in_mapper)

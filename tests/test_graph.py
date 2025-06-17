@@ -6,7 +6,7 @@ from gdm.distribution.components import (
     DistributionLoad,
 )
 from infrasys import Location
-from gdm.quantities import PositiveDistance
+from gdm.quantities import Distance
 
 from shift import DistributionGraph, NodeModel, EdgeModel
 from shift.exceptions import (
@@ -41,7 +41,7 @@ def distribution_graph():
         node_1,
         node_3,
         edge_data=EdgeModel(
-            name="line-2", edge_type=DistributionBranchBase, length=PositiveDistance(1, "m")
+            name="line-2", edge_type=DistributionBranchBase, length=Distance(1, "m")
         ),
     )
 
@@ -70,9 +70,7 @@ def test_edge_addition():
     node_1 = NodeModel(name="node_1", location=Location(x=1, y=1))
     node_2 = NodeModel(name="node_2", location=Location(x=1, y=2))
     graph.add_nodes([node_1, node_2])
-    edge_data = EdgeModel(
-        name="line-1", edge_type=DistributionBranchBase, length=PositiveDistance(1, "m")
-    )
+    edge_data = EdgeModel(name="line-1", edge_type=DistributionBranchBase, length=Distance(1, "m"))
     graph.add_edge(
         node_1.name,
         node_2.name,
@@ -115,7 +113,7 @@ def test_adding_edge_that_already_exists(distribution_graph):
             "node_1",
             "node_3",
             edge_data=EdgeModel(
-                name="line-1", edge_type=DistributionBranchBase, length=PositiveDistance(1, "m")
+                name="line-1", edge_type=DistributionBranchBase, length=Distance(1, "m")
             ),
         )
 

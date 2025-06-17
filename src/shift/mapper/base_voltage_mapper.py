@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import cached_property
 
-from gdm.quantities import PositiveVoltage
+from gdm.quantities import Voltage
 
 from shift.graph.distribution_graph import DistributionGraph
 
@@ -24,10 +24,10 @@ class BaseVoltageMapper(ABC):
 
     @abstractmethod
     @cached_property
-    def node_voltage_mapping(self) -> dict[str, PositiveVoltage]:
+    def node_voltage_mapping(self) -> dict[str, Voltage]:
         """Returns dictionary mapping node name to line to ground voltage.
 
         Returns
         -------
-        dict[str, tuple[PositiveVoltage, PositiveVoltage]]
+        dict[str, tuple[Voltage, Voltage]]
         """
