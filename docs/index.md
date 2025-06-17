@@ -8,7 +8,7 @@ Primarily this package will leverage open street parcels, road network to build 
 You can install this package from `main` branch using following command.
 
 ```bash
-pip install "nrel-shift @ git+https://github.com/NREL-Distribution-Suites/shift.git@main"
+pip install "nrel-shift"
 ```
 
 ```{toctree}

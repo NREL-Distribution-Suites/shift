@@ -2,7 +2,7 @@ from typing import Annotated, NamedTuple, Type, Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator
-from gdm.quantities import PositiveVoltage, PositiveApparentPower, PositiveDistance
+from gdm.quantities import Voltage, ApparentPower, Distance
 from gdm.distribution.components import (
     DistributionLoad,
     DistributionSolar,
@@ -60,9 +60,7 @@ class TransformerVoltageModel(BaseComponent):
     """Interface for transformer voltage model."""
 
     name: Annotated[str, Field(..., description="Name of the transformer.")]
-    voltages: Annotated[
-        list[PositiveVoltage], Field(..., description="List of transformer voltages.")
-    ]
+    voltages: Annotated[list[Voltage], Field(..., description="List of transformer voltages.")]
 
 
 class TransformerTypes(str, Enum):
@@ -81,7 +79,7 @@ class TransformerPhaseMapperModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     tr_name: str
     tr_type: TransformerTypes
-    tr_capacity: PositiveApparentPower
+    tr_capacity: ApparentPower
     location: Location
 
 
@@ -116,7 +114,7 @@ class EdgeModel(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     name: Annotated[str, Field(..., description="Name of the node.")]
     edge_type: Annotated[VALID_EDGE_TYPES, Field(..., description="Edge type.")]
-    length: Annotated[Optional[PositiveDistance], Field(None, description="Length of edge.")]
+    length: Annotated[Optional[Distance], Field(None, description="Length of edge.")]
 
     @model_validator(mode="after")
     def validate_fields(self):

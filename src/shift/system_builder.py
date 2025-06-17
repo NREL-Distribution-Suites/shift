@@ -14,7 +14,7 @@ from gdm.distribution.enums import (
     VoltageTypes,
     Phase,
 )
-from gdm.quantities import PositiveVoltage
+from gdm.quantities import Voltage
 import numpy as np
 
 from shift.data_model import (
@@ -126,9 +126,9 @@ class DistributionSystemBuilder:
         self._system.add_component(edge)
 
     @staticmethod
-    def _get_wdg_voltages(tr_equipment: DistributionTransformerEquipment) -> PositiveVoltage:
+    def _get_wdg_voltages(tr_equipment: DistributionTransformerEquipment) -> Voltage:
         """Internal method to return winding phase voltages."""
-        return PositiveVoltage(
+        return Voltage(
             [
                 wdg.rated_voltage.to("kilovolt").magnitude
                 / (

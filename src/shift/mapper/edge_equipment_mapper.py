@@ -4,7 +4,7 @@ from typing import Type
 
 from infrasys.component import Component
 from gdm.dataset.dataset_system import DatasetSystem
-from gdm.quantities import PositiveApparentPower, PositiveCurrent, PositiveVoltage
+from gdm.quantities import ApparentPower, Current, Voltage
 from gdm.distribution.components import (
     DistributionTransformer,
     DistributionBranchBase,
@@ -58,10 +58,10 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
         self.phase_mapper = phase_mapper
         super().__init__(graph)
 
-    def _get_load_power(self, load_equipment: LoadEquipment) -> PositiveApparentPower:
+    def _get_load_power(self, load_equipment: LoadEquipment) -> ApparentPower:
         """Internal method to return total load power."""
 
-        return PositiveApparentPower(
+        return ApparentPower(
             sum(
                 [
                     math.sqrt(
@@ -76,7 +76,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
             "kilova",
         )
 
-    def _get_served_load(self, from_node: str, to_node: str) -> PositiveApparentPower:
+    def _get_served_load(self, from_node: str, to_node: str) -> ApparentPower:
         """Internal method to get load served downward from this edge."""
         dfs_graph = self.graph.get_dfs_tree()
         parent_node = from_node if dfs_graph.has_edge(from_node, to_node) else to_node
@@ -88,7 +88,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
                 and DistributionLoad in x.assets
             )
         )
-        served_load = PositiveApparentPower(0, "kilova")
+        served_load = ApparentPower(0, "kilova")
         for node in load_nodes:
             equipment = self.node_asset_equipment_mapping[node.name][DistributionLoad]
             if not isinstance(equipment, LoadEquipment):
@@ -98,7 +98,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
         return served_load
 
     def _get_closest_transformer_equipment(
-        self, capacity: PositiveApparentPower, num_phase: int, voltages: list[PositiveVoltage]
+        self, capacity: ApparentPower, num_phase: int, voltages: list[Voltage]
     ) -> Component:
         """Internal method to return transformer equipment by capacity."""
 
@@ -131,7 +131,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
         return sorted(trs, key=lambda x: x.windings[0].rated_power)[0]
 
     def _get_closest_branch_equipment(
-        self, type_: Type[Component], current: PositiveCurrent, num_phase: int
+        self, type_: Type[Component], current: Current, num_phase: int
     ) -> Component:
         """Internal method to return closest conductor equipment."""
         if issubclass(type_, MatrixImpedanceBranchEquipment):
@@ -197,7 +197,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
 
                 edge_equipment_mapper[edge.name] = self._get_closest_branch_equipment(
                     EQUIPMENT_TO_CLASS_TYPE[edge.edge_type],
-                    PositiveCurrent(current, "ampere"),
+                    Current(current, "ampere"),
                     num_phase,
                 )
         return edge_equipment_mapper

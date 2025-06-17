@@ -12,13 +12,13 @@ upon which equipment is used by equipment mapper.
 ```python
 from shift import TransformerPhaseMapperModel, TransformerTypes, BalancedPhaseMapper, add_phase_mapper_to_plot
 from gdm import DistributionTransformer
-from gdm.quantities import PositiveApparentPower
+from gdm.quantities import ApparentPower
 
 mapper = [
     TransformerPhaseMapperModel(
         tr_name=el.name,
         tr_type=TransformerTypes.SPLIT_PHASE,
-        tr_capacity=PositiveApparentPower(
+        tr_capacity=ApparentPower(
             25,
             "kilova",
         ),
