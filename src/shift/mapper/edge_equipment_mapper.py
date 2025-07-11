@@ -115,7 +115,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
                 sorted(voltages, reverse=True), sorted(wdg_voltages, reverse=True)[: len(voltages)]
             ):
                 if v2 < 0.85 * v1 or v2 >= 1.15 * v1:
-                    print(f"Failed V1, V2. {v1, v2, wdg_voltages}")
+                    print(f"Failed V1 {v1}, V2 {v2}, winding voltages {wdg_voltages}.")
                     return False
             return True
 
