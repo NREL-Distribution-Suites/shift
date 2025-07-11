@@ -118,8 +118,9 @@ class AreaBasedLoadMapper(EdgeEquipmentMapper):
                             r1=Resistance(1e-5, "ohm"),
                             x0=Reactance(1e-5, "ohm"),
                             x1=Reactance(1e-5, "ohm"),
-                            voltage=Voltage(27, "kilovolt"),
+                            voltage=Voltage(12.47, "kilovolt"),
                             angle=Angle(0, "degree"),
+                            voltage_type = 
                         )
                         for idx in range(3)
                     ],
