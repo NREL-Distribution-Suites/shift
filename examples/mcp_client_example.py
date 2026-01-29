@@ -67,7 +67,7 @@ async def run_example():
                     for i, cluster in enumerate(cluster_response["clusters"]):
                         center = cluster["center"]
                         print(
-                            f"   Cluster {i+1}: {cluster['point_count']} points at "
+                            f"   Cluster {i + 1}: {cluster['point_count']} points at "
                             f"({center['longitude']:.4f}, {center['latitude']:.4f})"
                         )
                 print()
