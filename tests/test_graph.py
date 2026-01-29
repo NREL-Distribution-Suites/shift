@@ -128,3 +128,39 @@ def test_querying_edge_that_does_not_exist():
     graph = DistributionGraph()
     with pytest.raises(EdgeDoesNotExist) as _:
         graph.get_edge("node_1", "node_2")
+
+
+def test_get_all_nodes(distribution_graph):
+    """Test retrieving all nodes from graph."""
+    nodes = distribution_graph.get_nodes()
+    assert len(list(nodes)) >= 3
+
+
+def test_get_filtered_nodes(distribution_graph):
+    """Test retrieving filtered nodes."""
+    # Filter nodes with assets
+    nodes_with_assets = list(
+        distribution_graph.get_nodes(filter_func=lambda x: x.assets is not None)
+    )
+    assert len(nodes_with_assets) >= 2
+
+
+def test_get_all_edges(distribution_graph):
+    """Test retrieving all edges from graph."""
+    edges = distribution_graph.get_edges()
+    assert len(list(edges)) >= 2
+
+
+def test_get_filtered_edges(distribution_graph):
+    """Test retrieving filtered edges."""
+    # Filter edges by type
+    transformer_edges = list(
+        distribution_graph.get_edges(filter_func=lambda e: e.edge_type == DistributionTransformer)
+    )
+    assert len(transformer_edges) >= 1
+
+
+def test_graph_has_vsource_node(distribution_graph):
+    """Test accessing vsource node."""
+    assert distribution_graph.vsource_node is not None
+    assert distribution_graph.vsource_node == "node_2"

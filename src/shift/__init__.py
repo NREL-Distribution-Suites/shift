@@ -45,3 +45,5 @@ from shift.mapper.transformer_voltage_mapper import (
 )
 
 from shift.system_builder import DistributionSystemBuilder
+
+from shift.version import VERSION as __version__

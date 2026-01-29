@@ -2,9 +2,13 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/shift/version.py"
+pattern = "VERSION = \"(?P<version>[^\"]+)\""
+
 [project]
 name = "nrel-shift"
-version = "0.6.0"
+dynamic = ["version"]
 description = "Framework for developing synthetic distribution feeder model."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,21 +29,23 @@ dependencies = [
   "scikit-learn",
   "plotly",
   "geopy",
-  "grid-data-models~=2.1.2",
+  "grid-data-models==2.2.1",
   "importlib-metadata",
+  "loguru",
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "pytest", "ruff"]
+dev = ["pre-commit", "pytest", "pytest-cov", "pytest-mock", "ruff"]
 doc = ["sphinx", "pydata-sphinx-theme", "myst-parser", "autodoc_pydantic"]
+mcp = ["mcp>=0.9.0", "pyyaml"]
+
+[project.scripts]
+shift-mcp-server = "shift.mcp_server.server:cli_main"
 
 [project.urls]
 Documentation = "https://github.com/NREL-Distribution-Suites/shift#readme"
 Issues = "https://github.com/NREL-Distribution-Suites/shift/issues"
 Source = "https://github.com/NREL-Distribution-Suites/shift"
-
-[tool.hatch.version]
-path = "src/shift/version.py"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -90,3 +96,39 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/shift"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["src/shift"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+precision = 2
+show_missing = true
