@@ -3,6 +3,8 @@ import operator
 from uuid import uuid4
 import math
 
+from rich import print
+
 from gdm.distribution.equipment import DistributionTransformerEquipment
 from gdm.distribution import DistributionSystem
 from gdm.distribution.components import (
@@ -62,6 +64,7 @@ class DistributionSystemBuilder:
         self.equipment_mapper = equipment_mapper
 
         self._system = DistributionSystem(name=name, auto_add_composed_components=True)
+        print(self.equipment_mapper.node_asset_equipment_mapping)
         self._build_system()
 
     def _build_system(self):

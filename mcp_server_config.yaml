@@ -1,0 +1,25 @@
+# NREL-shift MCP Server Configuration
+
+# Server identification
+server_name: "nrel-shift-mcp-server"
+server_version: "0.1.0"
+
+# Default parameters for operations
+default_search_distance_m: 500.0
+max_search_distance_m: 5000.0
+default_cluster_count: 5
+
+# State management
+# Set to a directory path to enable persistent storage
+# Example: "./mcp_state" or "/tmp/shift_mcp_state"
+state_storage_dir: null
+
+# Feature flags
+enable_visualization: true
+
+# Logging configuration
+# Options: DEBUG, INFO, WARNING, ERROR
+log_level: "INFO"
+
+# Concurrency settings
+max_concurrent_fetches: 3

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nrel-shift": {
+      "command": "shift-mcp-server",
+      "args": [],
+      "env": {}
+    }
+  }
+}
