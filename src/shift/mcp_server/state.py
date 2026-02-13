@@ -54,7 +54,7 @@ class AppContext:
     def get_graph(self, graph_id: str) -> DistributionGraph:
         if graph_id not in self.graphs:
             raise KeyError(
-                f"No graph found with ID '{graph_id}'. " f"Available: {list(self.graphs.keys())}"
+                f"No graph found with ID '{graph_id}'. Available: {list(self.graphs.keys())}"
             )
         return self.graphs[graph_id]
 

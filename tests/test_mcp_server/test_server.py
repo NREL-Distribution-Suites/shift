@@ -1,6 +1,5 @@
 """Tests for server creation, prompts, and doc indexing."""
 
-
 from shift.mcp_server.server import create_server, _index_docs
 from shift.mcp_server.prompts import workflows
 from mcp.server.fastmcp import FastMCP

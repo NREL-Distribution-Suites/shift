@@ -1,6 +1,5 @@
 """Tests for documentation tools (search, read, list)."""
 
-
 from mcp.server.fastmcp import FastMCP
 
 from shift.mcp_server.state import AppContext

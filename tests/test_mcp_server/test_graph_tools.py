@@ -1,6 +1,5 @@
 """Tests for graph management, node, edge, and query tools."""
 
-
 from mcp.server.fastmcp import FastMCP
 
 from shift.mcp_server.tools.graph import management, nodes, edges, query

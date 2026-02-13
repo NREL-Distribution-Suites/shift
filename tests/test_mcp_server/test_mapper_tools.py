@@ -1,6 +1,5 @@
 """Tests for mapper tools (phase, voltage, equipment)."""
 
-
 from mcp.server.fastmcp import FastMCP
 
 from shift.mcp_server.tools.mapper import phase, voltage, equipment
