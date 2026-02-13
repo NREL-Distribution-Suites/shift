@@ -134,9 +134,9 @@ class TestExceptionHierarchy:
 
     def test_system_build_errors(self):
         for cls in [UnsupportedEdgeTypeError, WindingMismatchError, InvalidSplitPhaseWindingError]:
-            assert issubclass(
-                cls, SystemBuildError
-            ), f"{cls.__name__} must inherit SystemBuildError"
+            assert issubclass(cls, SystemBuildError), (
+                f"{cls.__name__} must inherit SystemBuildError"
+            )
 
     def test_input_validation_errors(self):
         assert issubclass(InvalidAssetPhase, InvalidInputError)

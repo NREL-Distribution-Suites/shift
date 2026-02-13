@@ -35,7 +35,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "pytest", "pytest-cov", "pytest-mock", "ruff"]
+dev = ["pre-commit", "pytest", "pytest-cov", "pytest-mock", "ruff==0.14.14"]
 doc = ["sphinx", "pydata-sphinx-theme", "myst-parser", "autodoc_pydantic"]
 mcp = ["mcp[cli]>=1.2.0", "pyyaml"]
 
