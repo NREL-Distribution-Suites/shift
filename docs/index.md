@@ -1,26 +1,28 @@
-# NREL-shift 
+# NREL-shift
 
-Python package for developing power distribution model using opensource data. This package 
-uses [Grid Data Models](https://github.nrel.gov/CADET/grid-data-models) to represent power distribution components and [Ditto](https://github.nrel.gov/CADET/ditto) for writing case files specific to simulators such as OpenDSS, Cyme, Synergi and others.
+A Python framework for building synthetic power distribution feeder models from open-source geospatial data. NREL-shift fetches building parcels and road networks from OpenStreetMap, constructs graph-based network topologies, and exports simulator-ready models via [Grid Data Models](https://github.com/NREL-Distribution-Suites/grid-data-models).
 
-Primarily this package will leverage open street parcels, road network to build out distribution model. 
-
-You can install this package from `main` branch using following command.
+## Installation
 
 ```bash
-pip install "nrel-shift"
+pip install nrel-shift
 ```
 
 ```{toctree}
 :hidden: true
 :maxdepth: 2
-
-references/index
-```
-
-```{toctree}
-:hidden: true
-:maxdepth: 2
+:caption: User Guides
 
 usage/index
 ```
+
+```{toctree}
+:hidden: true
+:maxdepth: 2
+:caption: API Reference
+
+references/index
+API_REFERENCE
+MCP_SERVER
+```
+

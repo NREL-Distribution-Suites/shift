@@ -1,40 +1,70 @@
-# Getting Parcels
+# Fetching Parcels
 
-First step in building distribution model is to get parcels.
-You can either bring your own parcels or provide location from where
-parcels will be downloaded.
+The first step in building a distribution model is obtaining building parcels — the geographic footprints of structures that will become load points in the network.
 
-There are three helper functions provided in SHIFT that enables users to fetch parcels
+NREL-shift provides three functions for loading parcels, depending on your data source.
 
+## From an Address or Coordinates
 
-* `parcels_from_csv`: Fetching parcels from csv. Only requirement for this csv is it needs to have
-`geometry` column. Shift uses geopandas to load geometries from this file.
-Currently we only support `Point`, `Polygon` and `MultiPolygon` shapes.
+Use `parcels_from_location` to download parcels from OpenStreetMap. You can pass a place name, a `GeoLocation`, or a polygon of `GeoLocation` points.
+
+```python
+from shift import parcels_from_location, GeoLocation
+from infrasys.quantities import Distance
+
+# By address string
+parcels = parcels_from_location("Fort Worth, TX", Distance(500, "m"))
+
+# By coordinates
+location = GeoLocation(longitude=-97.33, latitude=32.75)
+parcels = parcels_from_location(location, Distance(500, "m"))
+
+# By polygon (no distance needed — area is defined by the vertices)
+polygon = [
+    GeoLocation(-97.33, 32.75),
+    GeoLocation(-97.32, 32.76),
+    GeoLocation(-97.31, 32.75),
+]
+parcels = parcels_from_location(polygon)
+```
+
+Each element in the returned list is a `ParcelModel` whose `geometry` is either a single `GeoLocation` (point) or a list of `GeoLocation` points (polygon/multipolygon).
+
+## From a CSV File
+
+Use `parcels_from_csv` when you have parcel data in a CSV file. The only requirement is a `geometry` column containing WKT geometries. Supported geometry types: `Point`, `Polygon`, and `MultiPolygon`.
 
 ```python
 from shift import parcels_from_csv
-points = parcels_from_csv("my_parcel.csv")
+
+parcels = parcels_from_csv("my_parcels.csv")
 ```
 
-* `parcels_from_location`: You can also fetch parcels by providing location. You can also provide point or polygon
-to fetch parcels.
+## From a GeoDataFrame
+
+If you already have a GeoPandas `GeoDataFrame`, convert it directly:
 
 ```python
-from shift import parcels_from_location
-from infrasys.quantites import Distance
-points = parcels_from_location("Fort Worth, TX", Distance(400, "m"))
+from shift import parcels_from_geodataframe
+
+parcels = parcels_from_geodataframe(gdf)
 ```
 
-* `parcels_from_geodataframe`: Finally, you can also fetch parcels directly from a geodataframe. 
+## Visualizing Parcels
 
-
-Now if you want to visualize these parcels. You can leverage plot manager.
+Once you have parcels, you can plot them on an interactive map:
 
 ```python
 from shift import PlotManager, GeoLocation, add_parcels_to_plot
 import osmnx as ox
-coordinate_center = GeoLocation(*reversed(ox.geocode("Fort Worth, TX")))
-plot_manager = PlotManager(center=coordinate_center)
-add_parcels_to_plot(points, plot_manager)
+
+# Center the map on the same location
+center = GeoLocation(*reversed(ox.geocode("Fort Worth, TX")))
+plot_manager = PlotManager(center=center)
+add_parcels_to_plot(parcels, plot_manager)
 plot_manager.show()
 ```
+
+## Next Step
+
+With parcels in hand, proceed to [Building a Graph](building_graph.md) to cluster them and construct the distribution network topology.

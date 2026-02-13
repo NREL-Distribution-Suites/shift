@@ -91,7 +91,7 @@ class PlotManager:
                 longitudes.extend([loc.longitude for loc in geometry] + [None])
 
         self._figure.add_trace(
-            go.Scattermapbox(
+            go.Scattermap(
                 lon=longitudes,
                 lat=latitudes,
                 name=name,
@@ -128,12 +128,12 @@ class PlotManager:
         centre_longitude: float
             Longitude location of map center.
         style: str
-            Valid mapbox style https://plotly.com/python/mapbox-layers/,
+            Valid map style https://plotly.com/python/map-layers/,
             defaults to `carto-positron`.
         zoom: int
             Zoom level for map, defaults to 15.
         access_token: str | None, optional
-            Mapbox access token.
+            Map access token.
         margin: dict | None, optional
             Map margin
 
@@ -148,7 +148,7 @@ class PlotManager:
         if margin is None:
             margin = {"r": 0, "t": 0, "l": 0, "b": 0}
         figure.update_layout(margin=margin, legend=dict(x=0, y=1))
-        figure.update_mapboxes(
+        figure.update_maps(
             {
                 "accesstoken": access_token,
                 "style": style,

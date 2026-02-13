@@ -2,8 +2,7 @@ from functools import reduce
 import operator
 from uuid import uuid4
 import math
-
-from rich import print
+import logging
 
 from gdm.distribution.equipment import DistributionTransformerEquipment
 from gdm.distribution import DistributionSystem
@@ -29,6 +28,12 @@ from shift.mapper.base_equipment_mapper import BaseEquipmentMapper
 from shift.mapper.base_phase_mapper import BasePhaseMapper
 from shift.mapper.base_voltage_mapper import BaseVoltageMapper
 from shift.constants import EQUIPMENT_TO_CLASS_TYPE
+from shift.exceptions import (
+    InvalidSplitPhaseWindingError,
+    UnsupportedEdgeTypeError,
+    WindingMismatchError,
+    WrongEquipmentAssigned,
+)
 
 
 class DistributionSystemBuilder:
@@ -57,17 +62,35 @@ class DistributionSystemBuilder:
         phase_mapper: BasePhaseMapper,
         voltage_mapper: BaseVoltageMapper,
         equipment_mapper: BaseEquipmentMapper,
+        auto_build: bool = True,
     ):
         self.dist_graph = dist_graph
         self.phase_mapper = phase_mapper
         self.voltage_mapper = voltage_mapper
         self.equipment_mapper = equipment_mapper
+        self.name = name
 
-        self._system = DistributionSystem(name=name, auto_add_composed_components=True)
-        print(self.equipment_mapper.node_asset_equipment_mapping)
+        self._system = None
+        if auto_build:
+            self.build()
+
+    def build(self) -> DistributionSystem:
+        """Build the distribution system from the graph and mappers.
+
+        Returns
+        -------
+        DistributionSystem
+            The constructed distribution system.
+        """
+        if self._system is not None:
+            logging.warning("System already built. Returning existing system.")
+            return self._system
+
+        self._system = DistributionSystem(name=self.name, auto_add_composed_components=True)
         self._build_system()
+        return self._system
 
-    def _build_system(self):
+    def _build_system(self) -> None:
         """Internal method to build distribution system."""
         for node in self.dist_graph.get_nodes():
             self._add_bus(node)
@@ -76,20 +99,23 @@ class DistributionSystemBuilder:
 
         for from_node, to_node, edge_data in self.dist_graph.get_edges():
             equipment = self.equipment_mapper.edge_equipment_mapping[edge_data.name]
+            expected_type = EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type)
 
-            if type(equipment) is not EQUIPMENT_TO_CLASS_TYPE.get(edge_data.edge_type):
+            if not isinstance(equipment, expected_type):
                 msg = (
-                    f"{equipment=} is not supported for {edge_data=}"
-                    f"Supported types are {EQUIPMENT_TO_CLASS_TYPE.keys()}"
+                    f"Equipment type mismatch: {type(equipment).__name__} is not supported for "
+                    f"edge type {edge_data.edge_type.__name__}. "
+                    f"Expected {expected_type.__name__}. "
+                    f"Supported edge types: {', '.join(cls.__name__ for cls in EQUIPMENT_TO_CLASS_TYPE.keys())}"
                 )
-                raise NotImplementedError(msg)
+                raise WrongEquipmentAssigned(msg)
             if issubclass(edge_data.edge_type, DistributionBranchBase):
                 self._add_branch(from_node, to_node, edge_data)
             elif issubclass(edge_data.edge_type, DistributionTransformer):
                 self._add_transformer(from_node, to_node, edge_data)
             else:
                 msg = f"{edge_data.edge_type=} not supported. {edge_data=}"
-                raise NotImplementedError(msg)
+                raise UnsupportedEdgeTypeError(msg)
 
     def _add_asset(self, bus_name: str, asset_type: VALID_NODE_TYPES):
         """Internal method to add asset to a bus."""
@@ -162,7 +188,7 @@ class DistributionSystemBuilder:
         ]
         if len(set(mapped_buses)) != len(set(wdg_voltages)):
             msg = f"{set(mapped_buses)=} not matching winding voltages {set(wdg_voltages)=}"
-            raise ValueError(msg)
+            raise WindingMismatchError(msg)
         return mapped_buses
 
     def _get_wdg_phases(self, wdg_buses: list[str]) -> list[set[Phase]]:
@@ -173,7 +199,7 @@ class DistributionSystemBuilder:
             return wdg_phases
         if len(wdg_buses) != 3 or len(set(wdg_buses)) != 2:
             msg = f"Invalid split phase winding buses {wdg_buses=}"
-            raise ValueError(msg)
+            raise InvalidSplitPhaseWindingError(msg)
         split_phases = [set([Phase.S1, Phase.N]), set([Phase.N, Phase.S2])]
         for idx, wdg_ph in enumerate(wdg_phases):
             if not bool(set([Phase.S1, Phase.S2]) & wdg_ph):
@@ -200,8 +226,13 @@ class DistributionSystemBuilder:
     def get_system(self) -> DistributionSystem:
         """Method to return distribution system.
 
+        If the system hasn't been built yet, this will build it first.
+
         Returns
         -------
         DistributionSystem
+            The constructed distribution system.
         """
+        if self._system is None:
+            self.build()
         return self._system

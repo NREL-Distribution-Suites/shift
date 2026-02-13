@@ -21,7 +21,11 @@ from gdm.distribution.enums import Phase
 
 import networkx as nx
 
-from shift.exceptions import EquipmentNotFoundError, WrongEquipmentAssigned
+from shift.exceptions import (
+    EquipmentNotFoundError,
+    UnsupportedBranchEquipmentType,
+    WrongEquipmentAssigned,
+)
 from shift.graph.distribution_graph import DistributionGraph
 from shift.mapper.base_equipment_mapper import BaseEquipmentMapper
 from shift.mapper.base_phase_mapper import BasePhaseMapper
@@ -154,7 +158,7 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
 
         else:
             msg = f"Not supported {type_=} passed to find branch equipment."
-            raise ValueError(msg)
+            raise UnsupportedBranchEquipmentType(msg)
 
         branches = list(self.catalog_sys.get_components(type_, filter_func=filter_func))
 

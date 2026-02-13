@@ -1,10 +1,12 @@
 from infrasys.quantities import Distance
+from shapely.geometry import Polygon
 from geopandas import GeoDataFrame
+from loguru import logger
 import osmnx as ox
 import shapely
-from loguru import logger
 
 from shift.data_model import ParcelModel, GeoLocation
+from shift.exceptions import InvalidInputError
 
 from pathlib import Path
 
@@ -110,7 +112,7 @@ def parcels_from_csv(file_path: Path):
     df = pd.read_csv(file_path)
     if "geometry" not in df.columns:
         msg = f"geometry column missing csv file {file_path=}"
-        raise ValueError(msg)
+        raise InvalidInputError(msg)
     df["geometry"] = df["geometry"].apply(wkt.loads)
     return parcels_from_geodataframe(GeoDataFrame(df))
 
@@ -159,3 +161,9 @@ def parcels_from_location(
         )
     elif isinstance(location, list):
         return parcels_from_geodataframe(ox.features_from_polygon(shapely.Polygon(location), tags))
+
+
+def get_parcels_in_polygon(coordinates: list[list[float, float]] | Polygon) -> list[ParcelModel]:
+    if isinstance(coordinates, Polygon):
+        coordinates = [list(reversed(coord)) for coord in coordinates.exterior.coords]
+    return parcels_from_location(coordinates)

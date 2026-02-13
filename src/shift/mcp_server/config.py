@@ -1,66 +1,53 @@
-"""Configuration for NREL-shift MCP server."""
+"""Server configuration — loaded from YAML file, env vars, or defaults."""
 
-from typing import Optional
+from __future__ import annotations
+
+import os
 from pathlib import Path
-from pydantic import BaseModel, Field
+from typing import Optional
+
+from pydantic import BaseModel
 
 
-class MCPServerConfig(BaseModel):
-    """Configuration for the MCP server."""
+class ServerConfig(BaseModel):
+    """Configuration model for the shift MCP server."""
 
-    server_name: str = Field(default="nrel-shift-mcp-server", description="Name of the MCP server")
+    server_name: str = "nrel-shift-mcp-server"
+    server_version: str = "0.1.0"
 
-    server_version: str = Field(default="0.1.0", description="Version of the MCP server")
+    # data-acquisition defaults
+    default_search_distance_m: float = 500.0
+    max_search_distance_m: float = 5000.0
+    default_cluster_count: int = 5
 
-    default_search_distance_m: float = Field(
-        default=500.0, description="Default search distance in meters for data fetching"
-    )
+    # documentation path (auto-detected if None)
+    docs_path: Optional[str] = None
 
-    max_search_distance_m: float = Field(
-        default=5000.0, description="Maximum allowed search distance in meters"
-    )
+    # logging
+    log_level: str = "INFO"
 
-    default_cluster_count: int = Field(
-        default=5, description="Default number of clusters for parcel grouping"
-    )
-
-    state_storage_dir: Optional[Path] = Field(
-        default=None,
-        description="Directory for storing graph/system state (None = in-memory only)",
-    )
-
-    enable_visualization: bool = Field(default=True, description="Enable visualization tools")
-
-    log_level: str = Field(
-        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
-    )
-
-    max_concurrent_fetches: int = Field(
-        default=3, description="Maximum concurrent OpenStreetMap fetches"
-    )
-
-
-# Global configuration instance
-config = MCPServerConfig()
-
-
-def load_config(config_path: Optional[Path] = None) -> MCPServerConfig:
-    """Load configuration from file or use defaults.
-
-    Parameters
-    ----------
-    config_path : Optional[Path]
-        Path to configuration file (YAML or JSON)
-
-    Returns
-    -------
-    MCPServerConfig
-        Loaded configuration
-    """
-    if config_path and config_path.exists():
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "ServerConfig":
         import yaml
 
-        with open(config_path) as f:
-            config_data = yaml.safe_load(f)
-        return MCPServerConfig(**config_data)
-    return MCPServerConfig()
+        with open(path) as fh:
+            data = yaml.safe_load(fh) or {}
+        return cls(**data)
+
+    @classmethod
+    def load(cls, config_path: str | None = None) -> "ServerConfig":
+        """Load config from explicit path, env var, or defaults."""
+        path = config_path or os.environ.get("SHIFT_MCP_CONFIG")
+        if path and Path(path).exists():
+            return cls.from_yaml(path)
+        return cls()
+
+    def resolve_docs_path(self) -> Path:
+        """Return the absolute path to the docs/ folder."""
+        if self.docs_path:
+            return Path(self.docs_path).resolve()
+        # walk up from this file to find the repo root
+        candidate = Path(__file__).resolve().parent.parent / "docs"
+        if candidate.exists():
+            return candidate
+        return Path.cwd() / "docs"

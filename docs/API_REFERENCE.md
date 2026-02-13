@@ -1,315 +1,317 @@
 # API Quick Reference
 
-Quick reference guide for NREL-shift's main classes and functions.
+Concise code snippets for every major class and function in NREL-shift. For full details, see the auto-generated [API Reference](references/index.md) or the [Usage Guides](usage/index.md).
+
+---
 
 ## Data Models
 
 ### GeoLocation
+
 ```python
 from shift import GeoLocation
 
-# Create a geographic location
 location = GeoLocation(longitude=-97.33, latitude=32.75)
 ```
 
 ### ParcelModel
+
 ```python
 from shift import ParcelModel, GeoLocation
 
-# Create a parcel with point geometry
 parcel = ParcelModel(
     name="parcel-1",
     geometry=GeoLocation(-97.33, 32.75),
     building_type="residential",
     city="Fort Worth",
     state="TX",
-    postal_address="76102"
+    postal_address="76102",
 )
 ```
 
 ### NodeModel
+
 ```python
 from shift import NodeModel
 from infrasys import Location
-from gdm.distribution.components import DistributionLoad
+from gdm import DistributionLoad
 
-# Create a node for the distribution graph
 node = NodeModel(
     name="node-1",
     location=Location(x=-97.33, y=32.75),
-    assets={DistributionLoad}
+    assets={DistributionLoad},
 )
 ```
 
 ### EdgeModel
+
 ```python
 from shift import EdgeModel
-from gdm.distribution.components import DistributionBranchBase
-from gdm.quantities import Distance
+from gdm import DistributionBranchBase
+from infrasys.quantities import Distance
 
-# Create an edge for the distribution graph
 edge = EdgeModel(
     name="line-1",
     edge_type=DistributionBranchBase,
-    length=Distance(100, "m")
+    length=Distance(100, "m"),
 )
 ```
+
+---
 
 ## Data Fetching
 
 ### Fetch Parcels
+
 ```python
 from shift import parcels_from_location, GeoLocation
-from gdm.quantities import Distance
+from infrasys.quantities import Distance
 
 # By address
 parcels = parcels_from_location("Fort Worth, TX", Distance(500, "m"))
 
 # By coordinates
-location = GeoLocation(longitude=-97.33, latitude=32.75)
-parcels = parcels_from_location(location, Distance(500, "m"))
+parcels = parcels_from_location(GeoLocation(-97.33, 32.75), Distance(500, "m"))
 
-# By polygon
-polygon = [
-    GeoLocation(-97.33, 32.75),
-    GeoLocation(-97.32, 32.76),
-    GeoLocation(-97.31, 32.75)
-]
+# By polygon (no distance needed)
+polygon = [GeoLocation(-97.33, 32.75), GeoLocation(-97.32, 32.76), GeoLocation(-97.31, 32.75)]
 parcels = parcels_from_location(polygon)
 ```
 
 ### Get Road Network
+
 ```python
 from shift import get_road_network
-from gdm.quantities import Distance
+from infrasys.quantities import Distance
 
-# Get road network by address
 network = get_road_network("Fort Worth, TX", Distance(500, "m"))
-
 # Returns: networkx.Graph
 ```
+
+---
 
 ## Graph Construction
 
 ### DistributionGraph
+
 ```python
 from shift import DistributionGraph, NodeModel, EdgeModel
-from gdm.distribution.components import DistributionBranchBase
+from gdm import DistributionBranchBase
 from infrasys import Location
 
-# Create graph
 graph = DistributionGraph()
 
 # Add nodes
-node1 = NodeModel(name="node-1", location=Location(x=-97.33, y=32.75))
-node2 = NodeModel(name="node-2", location=Location(x=-97.32, y=32.76))
-graph.add_node(node1)
-graph.add_node(node2)
+graph.add_node(NodeModel(name="n1", location=Location(x=-97.33, y=32.75)))
+graph.add_node(NodeModel(name="n2", location=Location(x=-97.32, y=32.76)))
 
 # Add edge
-edge = EdgeModel(name="line-1", edge_type=DistributionBranchBase)
-graph.add_edge("node-1", "node-2", edge_data=edge)
+graph.add_edge("n1", "n2", edge_data=EdgeModel(name="line-1", edge_type=DistributionBranchBase))
 
-# Query nodes
-all_nodes = graph.get_nodes()
-single_node = graph.get_node("node-1")
-filtered_nodes = graph.get_nodes(filter_func=lambda n: n.assets is not None)
+# Query
+all_nodes = graph.get_nodes()                    # generator of NodeModel
+node = graph.get_node("n1")                      # single NodeModel
+filtered = graph.get_nodes(filter_func=lambda n: n.assets is not None)
 
-# Query edges
-all_edges = graph.get_edges()
-single_edge = graph.get_edge("node-1", "node-2")
+all_edges = graph.get_edges()                    # generator of (from, to, EdgeModel)
+edge = graph.get_edge("n1", "n2")                # single EdgeModel
 
-# Remove elements
-graph.remove_node("node-1")
-graph.remove_edge("node-1", "node-2")
+# Check existence
+graph.has_node("n1")                    # bool
 
-# Copy graph
-graph_copy = graph.copy()
+# Mutate
+graph.remove_edge("n1", "n2")
+graph.remove_node("n1")
+
+# Undirected copy (returns deep copy of internal nx.Graph)
+undirected = graph.get_undirected_graph()
 ```
 
-### OpenStreetGraphBuilder
+### PRSG (Road-Network Graph Builder)
+
 ```python
-from shift import OpenStreetGraphBuilder
-from gdm.quantities import Distance
+from shift import PRSG, GeoLocation, get_kmeans_clusters
 
-# Build graph from OpenStreetMap
-builder = OpenStreetGraphBuilder(
-    location="Fort Worth, TX",
-    search_distance=Distance(500, "m")
-)
-graph = builder.build()
+clusters = get_kmeans_clusters(5, parcel_points)
+builder = PRSG(groups=clusters, source_location=GeoLocation(-97.3, 32.75))
+graph = builder.get_distribution_graph()
 ```
+
+---
 
 ## Mappers
 
 ### BalancedPhaseMapper
+
 ```python
-from shift import BalancedPhaseMapper
-from gdm.quantities import ApparentPower
+from shift import BalancedPhaseMapper, TransformerPhaseMapperModel, TransformerTypes
+from gdm import DistributionTransformer
+from infrasys.quantities import ApparentPower
 
-# Create phase mapper
-phase_mapper = BalancedPhaseMapper(
-    dist_graph=graph,
-    transformers=[
-        {
-            "name": "tx-1",
-            "capacity": ApparentPower(50, "kVA"),
-            "type": "THREE_PHASE"
-        }
-    ]
-)
+models = [
+    TransformerPhaseMapperModel(
+        tr_name=edge.name,
+        tr_type=TransformerTypes.SPLIT_PHASE,
+        tr_capacity=ApparentPower(25, "kilovoltampere"),
+        location=graph.get_node(from_node).location,
+    )
+    for from_node, _, edge in graph.get_edges()
+    if edge.edge_type is DistributionTransformer
+]
 
-# Access phase mappings
-asset_phases = phase_mapper.asset_phase_mapping
-branch_phases = phase_mapper.branch_phase_mapping
+phase_mapper = BalancedPhaseMapper(graph, mapper=models, method="agglomerative")
+
+# Outputs
+phase_mapper.node_phase_mapping            # dict[str, set[Phase]]
+phase_mapper.transformer_phase_mapping     # dict[str, set[Phase]]
+phase_mapper.asset_phase_mapping           # dict[str, dict[type, set[Phase]]]
 ```
 
 ### TransformerVoltageMapper
-```python
-from shift import TransformerVoltageMapper
-from gdm.quantities import Voltage
 
-# Create voltage mapper
+```python
+from shift import TransformerVoltageMapper, TransformerVoltageModel
+from gdm import DistributionTransformer
+from infrasys.quantities import Voltage
+
 voltage_mapper = TransformerVoltageMapper(
-    dist_graph=graph,
-    primary_voltage=Voltage(12.47, "kV"),
-    secondary_voltage=Voltage(0.24, "kV")
+    graph,
+    xfmr_voltage=[
+        TransformerVoltageModel(
+            name=edge.name,
+            voltages=[Voltage(7.2, "kilovolt"), Voltage(120, "volt")],
+        )
+        for _, _, edge in graph.get_edges()
+        if edge.edge_type is DistributionTransformer
+    ],
 )
 
-# Access voltage mappings
-bus_voltages = voltage_mapper.bus_voltage_mapping
+# Outputs
+voltage_mapper.node_voltage_mapping  # dict[str, Voltage]
 ```
 
 ### EdgeEquipmentMapper
+
 ```python
 from shift import EdgeEquipmentMapper
 
-# Create equipment mapper
-equipment_mapper = EdgeEquipmentMapper(dist_graph=graph)
+eq_mapper = EdgeEquipmentMapper(graph, catalog_sys, voltage_mapper, phase_mapper)
 
-# Access equipment mappings
-node_equipment = equipment_mapper.node_asset_equipment_mapping
-edge_equipment = equipment_mapper.edge_equipment_mapping
+# Outputs
+eq_mapper.node_asset_equipment_mapping  # dict[str, dict[type, Equipment]]
+eq_mapper.edge_equipment_mapping        # dict[str, Equipment]
 ```
+
+---
 
 ## System Builder
 
-### DistributionSystemBuilder
 ```python
 from shift import DistributionSystemBuilder
 
-# Build the complete system
-system = DistributionSystemBuilder(
+builder = DistributionSystemBuilder(
     name="my_feeder",
     dist_graph=graph,
     phase_mapper=phase_mapper,
     voltage_mapper=voltage_mapper,
-    equipment_mapper=equipment_mapper
+    equipment_mapper=eq_mapper,
 )
 
-# Access the built system
-gdm_system = system._system
+system = builder.get_system()        # returns a DistributionSystem (GDM)
+system.to_json("model.json")
 ```
+
+---
 
 ## Utility Functions
 
-### Clustering
+### K-Means Clustering
+
 ```python
 from shift import get_kmeans_clusters, GeoLocation
 
-# Cluster points
-points = [
-    GeoLocation(-97.33, 32.75),
-    GeoLocation(-97.32, 32.76),
-    GeoLocation(-97.31, 32.77)
-]
+points = [GeoLocation(-97.33, 32.75), GeoLocation(-97.32, 32.76), GeoLocation(-97.31, 32.77)]
 clusters = get_kmeans_clusters(num_cluster=2, points=points)
 
-# Each cluster has center and points
 for cluster in clusters:
-    print(f"Center: {cluster.center}")
-    print(f"Points: {len(cluster.points)}")
+    print(f"Center: {cluster.center}, Members: {len(cluster.points)}")
 ```
 
 ### Nearest Points
+
 ```python
 from shift import get_nearest_points
 
-# Find nearest points
-source = [[1, 2], [2, 3], [3, 4]]
-target = [[4, 5], [0.5, 1.5]]
-nearest = get_nearest_points(source, target)
-# Returns: numpy array of nearest points
+nearest = get_nearest_points(
+    source=[[1, 2], [2, 3], [3, 4]],
+    target=[[4, 5], [0.5, 1.5]],
+)
+# Returns: numpy array of nearest source points for each target
 ```
 
 ### Mesh Network
+
 ```python
 from shift import get_mesh_network, GeoLocation
-from gdm.quantities import Distance
+from infrasys.quantities import Distance
 
-# Create mesh network
-corner1 = GeoLocation(-97.33, 32.75)
-corner2 = GeoLocation(-97.32, 32.76)
-mesh = get_mesh_network(corner1, corner2, Distance(100, "m"))
+mesh = get_mesh_network(GeoLocation(-97.33, 32.75), GeoLocation(-97.32, 32.76), Distance(100, "m"))
 # Returns: networkx.Graph
 ```
 
 ### Split Network Edges
+
 ```python
 from shift import split_network_edges
-from gdm.quantities import Distance
+from infrasys.quantities import Distance
 import networkx as nx
 
-# Create graph
-graph = nx.Graph()
-graph.add_node("node_1", x=-97.33, y=32.75)
-graph.add_node("node_2", x=-97.32, y=32.76)
-graph.add_edge("node_1", "node_2")
+g = nx.Graph()
+g.add_node("a", x=-97.33, y=32.75)
+g.add_node("b", x=-97.32, y=32.76)
+g.add_edge("a", "b")
 
-# Split long edges
-split_network_edges(graph, split_length=Distance(50, "m"))
+split_network_edges(g, split_length=Distance(50, "m"))
 ```
 
 ### Polygon from Points
+
 ```python
 from shift import get_polygon_from_points
-from gdm.quantities import Distance
+from infrasys.quantities import Distance
 
-# Create polygon buffer around points
-points = [[-97.33, 32.75], [-97.32, 32.76]]
-polygon = get_polygon_from_points(points, Distance(20, "m"))
+polygon = get_polygon_from_points([[-97.33, 32.75], [-97.32, 32.76]], Distance(20, "m"))
 # Returns: shapely.Polygon
 ```
 
+---
+
 ## Visualization
 
-### PlotManager
 ```python
-from shift import PlotManager, GeoLocation
-from shift import add_parcels_to_plot, add_xy_network_to_plot
-
-# Create plot manager
-plot_manager = PlotManager(center=GeoLocation(-97.33, 32.75))
-
-# Add elements to plot
-plot_manager.add_plot(
-    [GeoLocation(-97.33, 32.75), GeoLocation(-97.32, 32.76)],
-    name="my-line"
+from shift import (
+    PlotManager,
+    GeoLocation,
+    add_parcels_to_plot,
+    add_distribution_graph_to_plot,
+    add_phase_mapper_to_plot,
+    add_voltage_mapper_to_plot,
 )
 
-# Add parcels
+plot_manager = PlotManager(center=GeoLocation(-97.33, 32.75))
+
 add_parcels_to_plot(parcels, plot_manager)
+add_distribution_graph_to_plot(graph, plot_manager)
+add_phase_mapper_to_plot(phase_mapper, plot_manager)
+add_voltage_mapper_to_plot(voltage_mapper, plot_manager)
 
-# Add network
-add_xy_network_to_plot(network, plot_manager)
-
-# Show plot
 plot_manager.show()
 ```
 
+---
+
 ## Constants
 
-### Transformer Types
 ```python
 from shift import TransformerTypes
 
@@ -320,41 +322,72 @@ TransformerTypes.SINGLE_PHASE_PRIMARY_DELTA
 TransformerTypes.SPLIT_PHASE_PRIMARY_DELTA
 ```
 
-### Valid Types
 ```python
 from shift import VALID_NODE_TYPES, VALID_EDGE_TYPES
 
-# Node types: DistributionLoad, DistributionSolar, 
-#             DistributionCapacitor, DistributionVoltageSource
-
-# Edge types: DistributionBranchBase, DistributionTransformer
+# VALID_NODE_TYPES: DistributionLoad, DistributionSolar,
+#                   DistributionCapacitor, DistributionVoltageSource
+# VALID_EDGE_TYPES: DistributionBranchBase, DistributionTransformer
 ```
+
+---
 
 ## Exceptions
 
+All exceptions inherit from `ShiftException`.
+
 ```python
 from shift.exceptions import (
-    ShiftBaseException,
-    EdgeAlreadyExists,
-    EdgeDoesNotExist,
+    # Base
+    ShiftException,
+
+    # Graph errors
+    GraphError,
     NodeAlreadyExists,
     NodeDoesNotExist,
+    EdgeAlreadyExists,
+    EdgeDoesNotExist,
     VsourceNodeAlreadyExists,
-    VsourceNodeDoesNotExists,
-    InvalidInputError
+    VsourceNodeDoesNotExist,
+    EmptyGraphError,
+    InvalidNodeDataError,
+    InvalidEdgeDataError,
+
+    # Input errors
+    InvalidInputError,
+    InvalidAssetPhase,
+
+    # Mapper errors
+    MapperError,
+    AllocationMappingError,
+    InvalidPhaseAllocationMethod,
+    MissingTransformerMapping,
+    UnsupportedTransformerType,
+    MissingVoltageMappingError,
+    UnsupportedBranchEquipmentType,
+
+    # Equipment errors
+    EquipmentError,
+    EquipmentNotFoundError,
+    WrongEquipmentAssigned,
+
+    # System builder errors
+    SystemBuildError,
+    UnsupportedEdgeTypeError,
+    WindingMismatchError,
+    InvalidSplitPhaseWindingError,
 )
 
-# All exceptions inherit from ShiftBaseException
 try:
     graph.add_node(existing_node)
 except NodeAlreadyExists as e:
-    print(f"Node already exists: {e}")
+    print(e)
 ```
+
+---
 
 ## See Also
 
-- [Complete Example](complete_example.md)
-- [Building Graphs](building_graph.md)
-- [Mapping Phases](mapping_phases.md)
-- [Mapping Voltages](mapping_voltages.md)
-- [Mapping Equipment](mapping_equipment.md)
+- [Complete Example](usage/complete_example.md) — End-to-end workflow
+- [Usage Guides](usage/index.md) — Step-by-step guides for each stage
+- [Auto-generated API Docs](references/index.md) — Full docstring reference

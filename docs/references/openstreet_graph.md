@@ -1,5 +1,6 @@
 # OpenStreetGraphBuilder
 
+Builds a `DistributionGraph` from OpenStreetMap road network data.
 
 ```{eval-rst}
 .. currentmodule:: shift

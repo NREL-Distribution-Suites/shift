@@ -1,229 +1,149 @@
-# Quick Start Guide for Developers
+# Quick Start for Contributors
 
-Get up and running with NREL-shift development in minutes!
+Get a development environment running in under five minutes.
 
-## 🚀 Quick Setup (5 minutes)
+## Setup
 
 ### 1. Clone and Install
+
 ```bash
-# Clone the repository
 git clone https://github.com/NREL-Distribution-Suites/shift.git
 cd shift
 
-# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install in development mode
 pip install -e ".[dev,doc]"
 ```
 
+To also work on the MCP server, install the MCP extras:
+
+```bash
+pip install -e ".[dev,doc,mcp]"
+```
+
 ### 2. Verify Installation
-```bash
-# Run tests to verify everything works
-pytest
 
-# Should see all tests passing ✓
+```bash
+pytest
 ```
 
-### 3. Your First Change
+All tests should pass. If you see import errors, re-run `pip install -e ".[dev]"`.
 
-Edit a file, then verify your changes:
+### 3. Make a Change and Validate
+
 ```bash
-# Run linter
-ruff check .
-
-# Run tests
-pytest
-
-# Check coverage
-pytest --cov=shift
+ruff check .       # Lint
+ruff format .      # Format
+pytest             # Test
 ```
 
-## 🎯 Common Tasks
+## Common Commands
 
-### Run Tests
+### Testing
+
 ```bash
-# All tests
-pytest
-
-# Specific file
-pytest tests/test_graph.py
-
-# With coverage
-pytest --cov=shift --cov-report=html
-
-# View coverage report
-open htmlcov/index.html  # macOS
+pytest                                 # All tests
+pytest tests/test_graph.py             # Single file
+pytest tests/test_graph.py::test_name -v  # Single test, verbose
+pytest --cov=shift --cov-report=html   # With coverage report
+pytest -m "not slow"                   # Skip slow tests
 ```
 
 ### Code Quality
+
 ```bash
-# Check code style
-ruff check .
-
-# Auto-fix issues
-ruff check --fix .
-
-# Format code
-ruff format .
+ruff check .        # Check lint rules
+ruff check --fix .  # Auto-fix lint issues
+ruff format .       # Format code
 ```
 
-### Build Documentation
+### Documentation
+
 ```bash
-cd docs
-make html
+cd docs && make html
 # Open docs/_build/html/index.html
 ```
 
-## 📝 Making Changes
+## Development Workflow
 
-### 1. Create a Branch
-```bash
-git checkout -b feature/your-feature-name
-```
+1. **Branch** — `git checkout -b feature/your-feature-name`
+2. **Code** — Edit source, add tests, update docs
+3. **Validate** — `pytest && ruff check .`
+4. **Commit** — `git commit -m "Add feature: description"`
+5. **Push** — `git push origin feature/your-feature-name`
+6. **PR** — Open a pull request on GitHub
 
-### 2. Make Your Changes
-- Edit code
-- Add tests
-- Update docs
-
-### 3. Test Your Changes
-```bash
-# Run tests
-pytest
-
-# Check coverage
-pytest --cov=shift
-
-# Lint code
-ruff check .
-```
-
-### 4. Commit and Push
-```bash
-git add .
-git commit -m "Add feature: description"
-git push origin feature/your-feature-name
-```
-
-### 5. Create Pull Request
-Go to GitHub and create a PR!
-
-## 🔍 Project Structure Quick Reference
+## Project Layout
 
 ```
 shift/
 ├── src/shift/           # Source code
-│   ├── __init__.py      # Main exports
-│   ├── data_model.py    # Data models
-│   ├── parcel.py        # Parcel fetching
-│   ├── graph/           # Graph classes
-│   ├── mapper/          # Equipment/phase/voltage mappers
-│   └── utils/           # Utility functions
-├── tests/               # Test files
-├── docs/                # Documentation
-├── pyproject.toml       # Project configuration
-└── README.md            # Main readme
+│   ├── __init__.py      # Public API exports
+│   ├── data_model.py    # ParcelModel, NodeModel, EdgeModel, etc.
+│   ├── parcel.py        # OpenStreetMap parcel fetching
+│   ├── system_builder.py
+│   ├── graph/           # DistributionGraph, OpenStreetGraphBuilder, PRSG
+│   ├── mapper/          # Phase, voltage, and equipment mappers
+│   ├── mcp_server/      # MCP server for LLM agent integration
+│   └── utils/           # Clustering, nearest points, mesh networks
+├── tests/               # pytest test files (test_*.py)
+├── docs/                # Sphinx documentation
+│   ├── usage/           # How-to guides
+│   └── references/      # Auto-generated API docs
+└── pyproject.toml       # Project config, dependencies, tool settings
 ```
 
-## 📚 Key Files to Know
+## Key Entry Points
 
-| File | Purpose |
-|------|---------|
-| `src/shift/__init__.py` | Main API exports |
-| `src/shift/data_model.py` | Core data models |
-| `src/shift/graph/distribution_graph.py` | Main graph class |
-| `src/shift/mcp_server/` | MCP server implementation |
-| `tests/test_*.py` | Test files |
-| `pyproject.toml` | Dependencies and config |
-| `docs/MCP_SERVER.md` | MCP server documentation |
+| File | What It Does |
+|------|-------------|
+| `src/shift/__init__.py` | Defines the public API — start here to see what's exported |
+| `src/shift/graph/distribution_graph.py` | Core graph with typed nodes and edges |
+| `src/shift/graph/prsgb.py` | Primary/secondary graph builder from road networks |
+| `src/shift/mapper/` | Phase, voltage, and equipment assignment |
 
-## 🧪 Test Examples
+## Writing Tests
 
-### Write a Simple Test
+Tests live in `tests/` and follow the pattern `test_<module>.py`.
+
 ```python
-# tests/test_myfeature.py
 import pytest
-from shift import MyClass
+from shift import DistributionGraph, NodeModel
+from infrasys import Location
 
-def test_my_feature():
-    """Test my new feature."""
-    obj = MyClass()
-    result = obj.my_method()
-    assert result == expected_value
-```
-
-### Use Fixtures
-```python
 @pytest.fixture
 def sample_graph():
-    """Provide a sample graph for testing."""
+    """Provide a graph with one node for testing."""
     graph = DistributionGraph()
-    # Setup graph
+    graph.add_node(NodeModel(name="n1", location=Location(x=-97.3, y=32.7)))
     return graph
 
-def test_with_fixture(sample_graph):
-    """Test using fixture."""
-    assert sample_graph.get_nodes() is not None
+def test_node_retrieval(sample_graph):
+    """Verify nodes can be retrieved by name."""
+    node = sample_graph.get_node("n1")
+    assert node.name == "n1"
 ```
 
-## 💡 Tips
+## Tips
 
-1. **Run tests frequently** - Catch issues early
-2. **Check coverage** - Aim for >80% coverage for new code
-3. **Write docstrings** - Use NumPy style docstrings
-4. **Type hints** - Add type hints to all functions
-5. **Small commits** - Make focused, atomic commits
+1. **Run tests often** — catch regressions early
+2. **Keep commits small** — one logical change per commit
+3. **Add docstrings** — use NumPy-style format (see CONTRIBUTING.md)
+4. **Add type hints** — all function signatures should be annotated
+5. **Check coverage** — aim for > 80% on new code
 
-## 🐛 Common Issues
+## Pre-PR Checklist
 
-### Import Errors
-```bash
-# Reinstall in development mode
-pip install -e ".[dev]"
-```
-
-### Test Failures
-```bash
-# Run specific test with verbose output
-pytest tests/test_file.py::test_name -v
-```
-
-### Linting Errors
-```bash
-# Auto-fix most issues
-ruff check --fix .
-ruff format .
-```
-
-## 📖 Learn More
-
-- [README.md](../README.md) - Project overview
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Detailed guidelines
-- [docs/usage/complete_example.md](../docs/usage/complete_example.md) - Full example
-- [docs/API_REFERENCE.md](../docs/API_REFERENCE.md) - API reference
-
-## 🤝 Getting Help
-
-- Check existing [Issues](https://github.com/NREL-Distribution-Suites/shift/issues)
-- Create a new issue with details
-- Read the [documentation](../docs/)
-
-## ✅ Pre-PR Checklist
-
-Before creating a pull request:
-
-- [ ] All tests pass (`pytest`)
-- [ ] Code is linted (`ruff check .`)
-- [ ] Code is formatted (`ruff format .`)
-- [ ] Coverage is maintained/improved
+- [ ] Tests pass (`pytest`)
+- [ ] Lint clean (`ruff check .`)
+- [ ] Code formatted (`ruff format .`)
 - [ ] Docstrings added/updated
-- [ ] Documentation updated if needed
 - [ ] CHANGELOG.md updated
 
-## 🎉 You're Ready!
+## Resources
 
-You now have everything you need to contribute to NREL-shift. Start with a small change to get familiar with the workflow, then tackle bigger features!
-
-**Happy Coding!** 🚀
+- [README](./README.md) — Project overview and quick start
+- [CONTRIBUTING](./CONTRIBUTING.md) — Full contribution guidelines
+- [Complete Example](./docs/usage/complete_example.md) — End-to-end workflow
+- [API Reference](./docs/API_REFERENCE.md) — Class and function reference

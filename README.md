@@ -1,160 +1,203 @@
-# NREL-shift 
+# NREL-shift
 
-Python package for developing power distribution models using open-source data. This package uses [Grid Data Models](https://github.nrel.gov/CADET/grid-data-models) to represent power distribution components and [Ditto](https://github.nrel.gov/CADET/ditto) for writing case files specific to simulators such as OpenDSS, Cyme, Synergi and others.
-
-Primarily this package leverages OpenStreetMap parcels and road networks to build synthetic distribution feeder models.
+A Python framework for building synthetic power distribution feeder models from open-source geospatial data. NREL-shift fetches building parcels and road networks from OpenStreetMap, constructs graph-based network topologies, and exports simulator-ready models through [Grid Data Models](https://github.com/NREL-Distribution-Suites/grid-data-models) and [Ditto](https://github.com/NREL-Distribution-Suites/ditto).
 
 ## Features
 
-- **Automated Feeder Generation**: Build distribution feeder models from OpenStreetMap data
-- **Graph-Based Network Modeling**: Use NetworkX graphs for flexible network representation
-- **Equipment Mapping**: Map transformers, loads, and other equipment to network nodes and edges
-- **Phase Balancing**: Automatically balance phases across distribution transformers
-- **Voltage Mapping**: Assign appropriate voltage levels throughout the distribution network
-- **Visualization Tools**: Built-in plotting capabilities using Plotly
-- **Simulator Export**: Export models to various power system simulators via Grid Data Models
-- **MCP Server**: Model Context Protocol server for AI assistant integration
+- **Automated Feeder Generation** — Build distribution feeder models directly from OpenStreetMap data
+- **Graph-Based Network Modeling** — Represent distribution networks as NetworkX graphs with typed nodes and edges
+- **Equipment Mapping** — Assign transformers, loads, and other equipment to network components
+- **Phase Balancing** — Automatically balance phases across distribution transformers
+- **Voltage Mapping** — Assign voltage levels throughout the distribution network based on transformer topology
+- **Visualization** — Built-in Plotly-based plotting for parcels, networks, and phase/voltage overlays
+- **Simulator Export** — Write models to OpenDSS, CYME, Synergi, and other simulators via Grid Data Models
 
 ## Installation
 
-### From PyPI (when available)
+### From PyPI
+
 ```bash
 pip install nrel-shift
 ```
 
 ### From Source
+
 ```bash
 git clone https://github.com/NREL-Distribution-Suites/shift.git
 cd shift
 pip install -e .
 ```
 
-### Development Installation
-For development with testing and documentation tools:
-```bash
-pip install -e ".[dev,doc]"
-```
+### Optional Extras
 
-### MCP Server Installation
-For MCP (Model Context Protocol) server support:
 ```bash
+# Development (testing + linting)
+pip install -e ".[dev]"
+
+# Documentation
+pip install -e ".[doc]"
+
+# MCP server (AI agent integration)
 pip install -e ".[mcp]"
-```
 
-See [MCP Server Documentation](./docs/MCP_SERVER.md) for details on using NREL-shift with AI assistants like Claude.
+# Everything
+pip install -e ".[dev,doc,mcp]"
+```
 
 ## Quick Start
 
-### Fetch Parcels from OpenStreetMap
+The typical workflow has four stages: **fetch data → build graph → configure mappers → build system**.
+
+### 1. Fetch Parcels and Road Network
+
 ```python
-from shift import parcels_from_location, GeoLocation
+from shift import parcels_from_location, get_road_network, GeoLocation
 from gdm.quantities import Distance
 
-# Fetch parcels by address
+# Fetch building parcels from OpenStreetMap
 parcels = parcels_from_location("Fort Worth, TX", Distance(500, "m"))
 
-# Or by coordinates
+# Fetch the road network for the same area
+road_network = get_road_network("Fort Worth, TX", Distance(500, "m"))
+```
+
+You can also pass coordinates instead of an address:
+
+```python
 location = GeoLocation(longitude=-97.3, latitude=32.75)
 parcels = parcels_from_location(location, Distance(500, "m"))
 ```
 
-### Build a Road Network Graph
-```python
-from shift import get_road_network
+### 2. Build a Distribution Graph
 
-# Get road network from address
-graph = get_road_network("Fort Worth, TX", Distance(500, "m"))
+```python
+from shift import get_kmeans_clusters, PRSG, GeoLocation
+
+# Cluster parcels for transformer placement (~2 customers per transformer)
+parcel_points = [
+    p.geometry[0] if isinstance(p.geometry, list) else p.geometry
+    for p in parcels
+]
+clusters = get_kmeans_clusters(max(len(parcels) // 2, 1), parcel_points)
+
+# Build the distribution graph from clusters and road network
+builder = PRSG(
+    groups=clusters,
+    source_location=GeoLocation(-97.3, 32.75),
+)
+graph = builder.get_distribution_graph()
 ```
 
-### Create a Distribution System
+### 3. Configure Mappers and Build the System
+
 ```python
 from shift import (
-    DistributionSystemBuilder,
-    DistributionGraph,
     BalancedPhaseMapper,
     TransformerVoltageMapper,
-    EdgeEquipmentMapper
+    EdgeEquipmentMapper,
+    DistributionSystemBuilder,
+    TransformerPhaseMapperModel,
+    TransformerVoltageModel,
+    TransformerTypes,
 )
+from gdm import DistributionTransformer
+from gdm.quantities import ApparentPower, Voltage
 
-# Initialize components
-dist_graph = DistributionGraph()
-# ... add nodes and edges to graph
+# Phase mapper — assign phases to transformer secondaries
+transformer_phase_models = [
+    TransformerPhaseMapperModel(
+        tr_name=edge.name,
+        tr_type=TransformerTypes.SPLIT_PHASE,
+        tr_capacity=ApparentPower(25, "kilovoltampere"),
+        location=graph.get_node(from_node).location,
+    )
+    for from_node, _, edge in graph.get_edges()
+    if edge.edge_type is DistributionTransformer
+]
+phase_mapper = BalancedPhaseMapper(graph, mapper=transformer_phase_models, method="agglomerative")
 
-phase_mapper = BalancedPhaseMapper(dist_graph)
-voltage_mapper = TransformerVoltageMapper(dist_graph)
-equipment_mapper = EdgeEquipmentMapper(dist_graph)
+# Voltage mapper — assign primary/secondary voltages
+voltage_mapper = TransformerVoltageMapper(
+    graph,
+    xfmr_voltage=[
+        TransformerVoltageModel(
+            name=edge.name,
+            voltages=[Voltage(7.2, "kilovolt"), Voltage(120, "volt")],
+        )
+        for _, _, edge in graph.get_edges()
+        if edge.edge_type is DistributionTransformer
+    ],
+)
 
 # Build the system
+from pathlib import Path
+from gdm import DistributionSystem
+import shift
+
+MODELS_FOLDER = Path(shift.__file__).parent.parent.parent / "tests" / "models"
+catalog_sys = DistributionSystem.from_json(MODELS_FOLDER / "p1rhs7_1247.json")
+
 system = DistributionSystemBuilder(
-    name="my_feeder",
-    dist_graph=dist_graph,
+    name="fort_worth_feeder",
+    dist_graph=graph,
     phase_mapper=phase_mapper,
     voltage_mapper=voltage_mapper,
-    equipment_mapper=equipment_mapper
+    equipment_mapper=EdgeEquipmentMapper(graph, catalog_sys, voltage_mapper, phase_mapper),
 )
+distribution_system = system.get_system()
 ```
+
+See the [Complete Example](./docs/usage/complete_example.md) for a full end-to-end walkthrough.
 
 ## Documentation
 
-For detailed usage and API documentation, see the [docs](./docs) directory:
-
 ### User Guides
-- [Complete Example](./docs/usage/complete_example.md) - End-to-end workflow
-- [Building a Graph](./docs/usage/building_graph.md)
-- [Building a Distribution System](./docs/usage/building_system.md)
-- [Fetching Parcels](./docs/usage/fetching_parcels.md)
-- [Mapping Equipment](./docs/usage/mapping_equipment.md)
-- [Mapping Phases](./docs/usage/mapping_phases.md)
-- [Mapping Voltages](./docs/usage/mapping_voltages.md)
+
+These guides walk through individual stages of the workflow:
+
+| Guide | Description |
+|-------|-------------|
+| [Complete Example](./docs/usage/complete_example.md) | End-to-end workflow from data fetching to system export |
+| [Fetching Parcels](./docs/usage/fetching_parcels.md) | Loading building parcels from CSV, addresses, or GeoDataFrames |
+| [Building a Graph](./docs/usage/building_graph.md) | Constructing distribution graphs from clustered parcels |
+| [Updating Branch Types](./docs/usage/updating_branch_type.md) | Changing edge types for specific equipment models |
+| [Mapping Phases](./docs/usage/mapping_phases.md) | Assigning phases with balanced or custom mappers |
+| [Mapping Voltages](./docs/usage/mapping_voltages.md) | Assigning voltage levels via transformer topology |
+| [Mapping Equipment](./docs/usage/mapping_equipment.md) | Mapping loads, sources, and catalog equipment |
+| [Building a System](./docs/usage/building_system.md) | Assembling the final distribution system model |
+
+### MCP Server (AI Agent Integration)
+
+NREL-shift includes an MCP server for use with LLM-based agents. See the [MCP Server Guide](./docs/MCP_SERVER.md) for setup and usage.
 
 ### Developer Resources
-- [API Quick Reference](./docs/API_REFERENCE.md) - Quick lookup for all APIs
-- [MCP Server Guide](./docs/MCP_SERVER.md) - AI assistant integration
-- [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute
-- [Quick Start for Developers](./QUICKSTART.md) - Fast-track setup
+
+- [API Reference](./docs/API_REFERENCE.md) — Quick lookup for all classes and functions
+- [Contributing](./CONTRIBUTING.md) — Development workflow and code style guidelines
+- [Quick Start for Contributors](./QUICKSTART.md) — Fast-track development setup
 
 ## Running Tests
 
 ```bash
-# Install development dependencies
 pip install -e ".[dev]"
 
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=shift --cov-report=html
-
-# Run specific test file
-pytest tests/test_graph.py
+pytest                              # Run all tests
+pytest --cov=shift --cov-report=html  # With coverage report
+pytest tests/test_graph.py          # Single test file
+pytest -m "not slow"                # Skip slow tests
 ```
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-### Development Setup
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/shift.git`
-3. Install development dependencies: `pip install -e ".[dev,doc]"`
-4. Create a feature branch: `git checkout -b feature-name`
-5. Make your changes and add tests
-6. Run tests: `pytest`
-7. Run linter: `ruff check .`
-8. Commit and push your changes
-9. Create a pull request
 
 ## Requirements
 
 - Python >= 3.10
-- OSMnx (for OpenStreetMap data)
-- NetworkX (for graph operations)
-- Grid Data Models (for power system components)
-- See [pyproject.toml](./pyproject.toml) for complete dependencies
+- [OSMnx](https://osmnx.readthedocs.io/) — OpenStreetMap data access
+- [NetworkX](https://networkx.org/) — Graph operations
+- [Grid Data Models](https://github.com/NREL-Distribution-Suites/grid-data-models) — Power system component models
+- See [pyproject.toml](./pyproject.toml) for the complete dependency list
 
 ## License
 
-This project is licensed under the BSD-3-Clause License - see the [LICENSE.txt](./LICENSE.txt) file for details.
+BSD-3-Clause — see [LICENSE.txt](./LICENSE.txt).
 
 ## Authors
 
@@ -163,8 +206,6 @@ This project is licensed under the BSD-3-Clause License - see the [LICENSE.txt](
 - Erik Pohl (Erik.Pohl@nrel.gov)
 
 ## Citation
-
-If you use this package in your research, please cite:
 
 ```bibtex
 @software{nrel_shift,
@@ -177,6 +218,5 @@ If you use this package in your research, please cite:
 
 ## Support
 
-For questions and support:
-- Open an [issue](https://github.com/NREL-Distribution-Suites/shift/issues)
-- Check the [documentation](https://github.com/NREL-Distribution-Suites/shift#readme) 
+- [Open an issue](https://github.com/NREL-Distribution-Suites/shift/issues) for bugs and feature requests
+- [Discussions](https://github.com/NREL-Distribution-Suites/shift/discussions) for questions

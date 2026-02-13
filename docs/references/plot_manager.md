@@ -1,5 +1,6 @@
-# Plot Manager
+# PlotManager
 
+Interactive Plotly-based map for visualizing parcels, networks, and distribution graphs.
 
 ```{eval-rst}
 .. currentmodule:: shift

@@ -46,4 +46,24 @@ from shift.mapper.transformer_voltage_mapper import (
 
 from shift.system_builder import DistributionSystemBuilder
 
+from shift.exceptions import (
+    ShiftException,
+    GraphError,
+    MapperError,
+    EquipmentError,
+    SystemBuildError,
+    NodeAlreadyExists,
+    NodeDoesNotExist,
+    EdgeAlreadyExists,
+    EdgeDoesNotExist,
+    VsourceNodeAlreadyExists,
+    VsourceNodeDoesNotExist,
+    EmptyGraphError,
+    InvalidInputError,
+    InvalidAssetPhase,
+    AllocationMappingError,
+    EquipmentNotFoundError,
+    WrongEquipmentAssigned,
+)
+
 from shift.version import VERSION as __version__

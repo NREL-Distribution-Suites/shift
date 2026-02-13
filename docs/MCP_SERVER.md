@@ -1,297 +1,227 @@
-# NREL-shift MCP Server
+# MCP Server
 
-Model Context Protocol (MCP) server for NREL-shift distribution system modeling.
-
-## Overview
-
-This MCP server exposes NREL-shift's distribution system modeling capabilities as structured tools that can be used by AI assistants, IDEs, and other MCP clients. The server enables:
-
-- Fetching building parcels from OpenStreetMap
-- Clustering parcels for transformer placement
-- Building and manipulating distribution graphs
-- Managing graph state across sessions
-- Querying graph structure and properties
+NREL-shift includes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that exposes the full framework to LLM-based agents. The server provides 33 tools, 3 resource templates, and 3 prompt templates that enable AI assistants to build synthetic distribution feeder models interactively.
 
 ## Installation
 
-```bash
-# Install with MCP support
-pip install -e ".[mcp]"
+Install the MCP optional dependencies:
 
-# Or install MCP dependencies separately
-pip install mcp pyyaml loguru
+```bash
+pip install -e ".[mcp]"
 ```
 
-**Note:** There is currently a pydantic version dependency conflict between the MCP library (requires pydantic 2.12.x) and grid-data-models (requires pydantic 2.10.x). The MCP server code is ready but may require resolving this dependency conflict before full operation. You can:
-1. Use a separate virtual environment for the MCP server
-2. Wait for grid-data-models to update its pydantic dependency
-3. Use the core NREL-shift library without MCP features
-
-## Quick Start
-
-### Running the Server
+## Running the Server
 
 ```bash
-# Run with default configuration
+# Via console script
 shift-mcp-server
 
-# Run with custom configuration
-shift-mcp-server --config config.yaml
+# Via Python module
+python -m shift.mcp_server
 ```
 
-### Using with Claude Desktop
+The server uses **stdio** transport by default.
 
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+### Claude Desktop Configuration
+
+Add the following to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
     "nrel-shift": {
-      "command": "shift-mcp-server",
-      "args": []
+      "command": "shift-mcp-server"
     }
   }
 }
 ```
 
-Or if using a virtual environment:
-
-```json
-{
-  "mcpServers": {
-    "nrel-shift": {
-      "command": "/path/to/venv/bin/shift-mcp-server",
-      "args": []
-    }
-  }
-}
-```
-
-## Available Tools
-
-### Data Acquisition
-
-#### `fetch_parcels`
-Fetch building parcels from OpenStreetMap.
-
-**Parameters:**
-- `location` (string | object): Address string or {longitude, latitude} coordinates
-- `distance_meters` (number, optional): Search distance in meters (default: 500, max: 5000)
-
-**Example:**
-```json
-{
-  "location": "Fort Worth, TX",
-  "distance_meters": 1000
-}
-```
-
-#### `cluster_parcels`
-Cluster parcels into groups using K-means for transformer placement.
-
-**Parameters:**
-- `parcels` (array): Array of parcel objects with geometry
-- `num_clusters` (integer, optional): Number of clusters (default: 5)
-
-**Example:**
-```json
-{
-  "parcels": [...],
-  "num_clusters": 10
-}
-```
-
-### Graph Management
-
-#### `create_graph`
-Create a new empty distribution graph.
-
-**Parameters:**
-- `name` (string, optional): Optional name for the graph
-
-**Returns:** Graph ID for use in subsequent operations
-
-#### `add_node`
-Add a node to a distribution graph.
-
-**Parameters:**
-- `graph_id` (string): Graph identifier
-- `node_name` (string): Name for the node
-- `longitude` (number): Longitude coordinate
-- `latitude` (number): Latitude coordinate
-- `assets` (array, optional): Asset types (e.g., ["DistributionLoad", "DistributionVoltageSource"])
-
-**Asset Types:**
-- `DistributionLoad`: Load/customer connection
-- `DistributionSolar`: Solar generation
-- `DistributionCapacitor`: Capacitor bank
-- `DistributionVoltageSource`: Voltage source (substation)
-
-#### `add_edge`
-Add an edge (line or transformer) to a distribution graph.
-
-**Parameters:**
-- `graph_id` (string): Graph identifier
-- `from_node` (string): Source node name
-- `to_node` (string): Target node name
-- `edge_name` (string): Name for the edge
-- `edge_type` (string): "DistributionBranchBase" (line) or "DistributionTransformer"
-- `length_meters` (number, optional): Edge length in meters (required for branches)
-
-#### `query_graph`
-Query information about a distribution graph.
-
-**Parameters:**
-- `graph_id` (string): Graph identifier
-- `query_type` (string): Type of query
-  - `summary`: Node/edge counts and vsource
-  - `nodes`: List all nodes with locations
-  - `edges`: List all edges with connections
-  - `vsource`: Get voltage source node
-
-#### `list_resources`
-List available graphs and systems.
-
-**Parameters:**
-- `resource_type` (string): "all", "graphs", or "systems"
-
-## Example Workflows
-
-### Workflow 1: Fetch and Cluster Parcels
+## Architecture
 
 ```
-1. Use fetch_parcels with location="Denver, CO" and distance_meters=1000
-2. Use cluster_parcels with the returned parcels and num_clusters=5
-3. Review cluster centers for transformer placement
+src/shift/mcp_server/
+├── __init__.py
+├── __main__.py          # Entry point
+├── server.py            # FastMCP instance, lifespan, registration
+├── config.py            # ServerConfig (Pydantic model)
+├── state.py             # AppContext — in-memory session state
+├── serializers.py       # JSON serialization helpers
+├── tools/
+│   ├── data_acquisition/
+│   │   ├── parcels.py       # fetch_parcels, fetch_parcels_in_polygon
+│   │   ├── roads.py         # fetch_road_network
+│   │   └── clustering.py    # cluster_parcels
+│   ├── graph/
+│   │   ├── management.py    # create_graph, delete_graph, list_graphs
+│   │   ├── nodes.py         # add_node, remove_node, get_node
+│   │   ├── edges.py         # add_edge, remove_edge, get_edge
+│   │   ├── query.py         # query_graph
+│   │   └── builder.py       # build_graph_from_groups
+│   ├── mapper/
+│   │   ├── phase.py         # configure_phase_mapper, get_phase_mapping
+│   │   ├── voltage.py       # configure_voltage_mapper, get_voltage_mapping
+│   │   └── equipment.py     # configure_equipment_mapper, get_equipment_mapping
+│   ├── system/
+│   │   ├── builder.py       # build_system, get_system_summary, list_systems
+│   │   └── export.py        # export_system_json
+│   ├── utilities/
+│   │   ├── geo.py           # distance_between_points, polygon_from_points
+│   │   ├── network.py       # create_mesh_network, split_edges
+│   │   └── nearest.py       # find_nearest_points
+│   └── documentation/
+│       ├── search.py        # search_docs
+│       └── read.py          # list_docs, read_doc
+├── resources/
+│   └── docs.py              # shift://docs, shift://docs/{name}, shift://graphs
+└── prompts/
+    └── workflows.py         # build_feeder_from_location, inspect_network, explore_api
 ```
 
-### Workflow 2: Build a Simple Graph
+## Session State
 
-```
-1. Use create_graph to create a new graph (returns graph_id)
-2. Use add_node to add a voltage source node with assets=["DistributionVoltageSource"]
-3. Use add_node to add load nodes at parcel locations with assets=["DistributionLoad"]
-4. Use add_edge to connect source to loads with edge_type="DistributionBranchBase"
-5. Use query_graph with query_type="summary" to verify the graph
-```
+The server is **stateful** — graphs, mappers, and systems are held in memory for the duration of a session via the `AppContext` dataclass. Each tool receives the context through FastMCP's lifespan mechanism.
 
-### Workflow 3: Query Existing Graphs
+Key state containers:
 
-```
-1. Use list_resources with resource_type="graphs" to see available graphs
-2. Use query_graph with specific graph_id and query_type="nodes" to see details
-3. Use query_graph with query_type="edges" to see connections
-```
+| Container | Type | Contents |
+|-----------|------|----------|
+| `graphs` | `dict[str, DistributionGraph]` | In-memory distribution graphs |
+| `phase_mappers` | `dict[str, BalancedPhaseMapper]` | Phase mapper instances |
+| `voltage_mappers` | `dict[str, TransformerVoltageMapper]` | Voltage mapper instances |
+| `equipment_mappers` | `dict[str, EdgeEquipmentMapper]` | Equipment mapper instances |
+| `systems` | `dict[str, DistributionSystem]` | Built distribution systems |
+| `docs_index` | `dict[str, str]` | Indexed documentation content |
+
+## Tools Reference
+
+### Data Acquisition (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `fetch_parcels` | Fetch building parcels from OpenStreetMap for a given location |
+| `fetch_parcels_in_polygon` | Fetch building parcels within a polygon boundary |
+| `fetch_road_network` | Fetch the road network from OpenStreetMap around a location |
+
+### Graph Management (8 tools)
+
+| Tool | Description |
+|------|-------------|
+| `create_graph` | Create a new empty distribution graph |
+| `delete_graph` | Delete a distribution graph and its associated mappers |
+| `list_graphs` | List all distribution graphs in the current session |
+| `add_node` | Add a node to a distribution graph |
+| `remove_node` | Remove a node from a distribution graph |
+| `get_node` | Get details of a specific node |
+| `add_edge` | Add an edge (line or transformer) to a distribution graph |
+| `remove_edge` | Remove an edge from a distribution graph |
+| `get_edge` | Get details of a specific edge |
+| `query_graph` | Query information about a distribution graph (summary, nodes, edges, vsource, dfs_tree) |
+| `build_graph_from_groups` | Build a complete distribution graph from parcel groups using the PRSG algorithm |
+
+### Mappers (6 tools)
+
+| Tool | Description |
+|------|-------------|
+| `configure_phase_mapper` | Configure balanced phase mapping for a distribution graph |
+| `get_phase_mapping` | Get phase assignments (nodes, assets, or transformers) |
+| `configure_voltage_mapper` | Configure voltage mapping for a distribution graph |
+| `get_voltage_mapping` | Get voltage assignments for all nodes |
+| `configure_equipment_mapper` | Configure equipment mapping using an equipment catalog |
+| `get_equipment_mapping` | Get equipment assignments for all edges |
+
+### System (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `build_system` | Build a complete distribution system from a configured graph |
+| `get_system_summary` | Get a summary of a built distribution system |
+| `list_systems` | List all built distribution systems in the current session |
+| `export_system_json` | Export a distribution system to JSON format |
+
+### Utilities (5 tools)
+
+| Tool | Description |
+|------|-------------|
+| `cluster_parcels` | Cluster geographic points into groups using K-means |
+| `distance_between_points` | Calculate geodesic distance between two points |
+| `polygon_from_points` | Create a polygon boundary from a set of points |
+| `create_mesh_network` | Create a regular 2D mesh/grid network |
+| `split_edges` | Split long edges into shorter segments |
+| `find_nearest_points` | Find the nearest target point for each source point |
+
+### Documentation (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `list_docs` | List all available documentation files |
+| `search_docs` | Search across all documentation for a keyword or phrase |
+| `read_doc` | Read a specific documentation file, optionally by section |
+
+## Resource Templates
+
+| URI | Description |
+|-----|-------------|
+| `shift://docs` | List all indexed documentation files |
+| `shift://docs/{doc_name}` | Read a specific documentation file by name |
+| `shift://graphs` | List all in-memory distribution graphs |
+
+## Prompt Templates
+
+| Prompt | Description |
+|--------|-------------|
+| `build_feeder_from_location` | Guides through the full pipeline: fetch → cluster → build graph → map phases → map voltages → map equipment → build system → export |
+| `inspect_network` | Inspect an existing distribution graph and summarize its topology |
+| `explore_api` | Explore the NREL-shift API documentation on a given topic |
 
 ## Configuration
 
-Create a `config.yaml` file:
+The server loads configuration from a `ServerConfig` Pydantic model. Defaults can be overridden by placing a `shift_mcp_config.yaml` file in the working directory.
 
-```yaml
-server_name: "nrel-shift-mcp-server"
-server_version: "0.1.0"
-default_search_distance_m: 500.0
-max_search_distance_m: 5000.0
-default_cluster_count: 5
-state_storage_dir: null  # or path like "./mcp_state"
-enable_visualization: true
-log_level: "INFO"
-max_concurrent_fetches: 3
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `server_name` | `"nrel-shift"` | Server display name |
+| `server_version` | `"0.1.0"` | Server version |
+| `default_search_distance_m` | `500.0` | Default parcel/road search radius (meters) |
+| `max_search_distance_m` | `5000.0` | Maximum allowed search radius (meters) |
+| `default_cluster_count` | `5` | Default number of K-means clusters |
+| `docs_path` | `""` | Override path to documentation directory |
+| `log_level` | `"INFO"` | Logging level |
+
+## Example Workflow
+
+A typical agent-driven workflow:
+
+```
+User: Build a small distribution feeder for Golden, CO
+
+Agent:
+1. fetch_parcels(location="Golden, CO", distance_meters=300)
+   → 24 parcels found
+
+2. cluster_parcels(points=[...], num_clusters=6)
+   → 6 groups created
+
+3. build_graph_from_groups(groups=[...], source_longitude=-105.22, source_latitude=39.75)
+   → graph "graph-a1b2" created with 31 nodes, 30 edges
+
+4. configure_phase_mapper(graph_id="graph-a1b2", transformer_configs=[...])
+   → phase mapper configured
+
+5. configure_voltage_mapper(graph_id="graph-a1b2", transformer_voltages=[...])
+   → voltage mapper configured
+
+6. configure_equipment_mapper(graph_id="graph-a1b2", catalog_path="...")
+   → equipment mapper configured
+
+7. build_system(system_name="golden_feeder", graph_id="graph-a1b2")
+   → system built
+
+8. export_system_json(system_name="golden_feeder", output_path="./golden_feeder.json")
+   → exported to ./golden_feeder.json
 ```
 
-## State Management
+## Known Limitations
 
-The server maintains in-memory state for graphs created during a session. Graphs are identified by unique IDs and can be queried and modified across multiple tool calls.
-
-To enable persistent storage:
-```yaml
-state_storage_dir: "/path/to/storage/directory"
-```
-
-This will save graphs to JSON files that persist across server restarts.
-
-## Error Handling
-
-All tools return a consistent response format:
-
-**Success:**
-```json
-{
-  "success": true,
-  "...": "... tool-specific data ..."
-}
-```
-
-**Error:**
-```json
-{
-  "success": false,
-  "error": "Error message describing what went wrong"
-}
-```
-
-## Logging
-
-The server uses `loguru` for logging. Logs are output to stderr with timestamps and level indicators.
-
-Configure log level in config.yaml:
-- `DEBUG`: Detailed debugging information
-- `INFO`: General informational messages (default)
-- `WARNING`: Warning messages
-- `ERROR`: Error messages only
-
-## Limitations
-
-Current version limitations:
-
-1. **Read-only Operations**: The server currently supports graph construction and querying but not full system building with phase/voltage/equipment mapping (coming in next version)
-
-2. **In-memory State**: Default state is in-memory only and cleared on server restart (enable `state_storage_dir` for persistence)
-
-3. **No Authentication**: Server runs locally without authentication (suitable for single-user desktop use)
-
-4. **Limited Visualization**: Visualization tools not yet implemented
-
-5. **No Async Operations**: Long-running operations (like large OpenStreetMap fetches) may cause timeouts
-
-## Future Enhancements
-
-Planned features for upcoming versions:
-
-- [ ] Phase mapping tools (balanced, custom allocation)
-- [ ] Voltage mapping tools
-- [ ] Equipment mapping tools
-- [ ] Complete system builder tool
-- [ ] Visualization tools (interactive plots, diagrams)
-- [ ] Export tools (OpenDSS, CYME, etc.)
-- [ ] Async operations with progress reporting
-- [ ] Resource streaming for large graphs
-- [ ] Graph validation and health checks
-- [ ] Network analysis tools (connectivity, power flow)
-
-## Troubleshooting
-
-### Server won't start
-- Ensure MCP dependencies are installed: `pip install mcp pyyaml loguru`
-- Check Python version >= 3.10
-- Verify shift package is installed: `pip install -e ".[mcp]"`
-
-### Tool calls timeout
-- Reduce search distance for `fetch_parcels`
-- Check internet connection for OpenStreetMap access
-- Increase timeout in client configuration
-
-### Graph not found errors
-- Use `list_resources` to verify graph ID
-- Remember graphs are per-session unless `state_storage_dir` is configured
-- Graph IDs are case-sensitive
-
-## Support
-
-For issues, questions, or feature requests:
-- GitHub Issues: https://github.com/NREL-Distribution-Suites/shift/issues
-- Documentation: https://github.com/NREL-Distribution-Suites/shift
-
-## License
-
-BSD-3-Clause License - see LICENSE.txt for details
+- **Pydantic version conflict**: `grid-data-models==2.2.1` pins `pydantic~=2.10`, while `mcp[cli]` may require `pydantic>=2.12`. You may need to relax the pin or install in a separate environment.
+- **Network-dependent tools**: `fetch_parcels`, `fetch_parcels_in_polygon`, and `fetch_road_network` require internet access to query OpenStreetMap.
+- **Single session**: The stdio transport serves one client at a time. For multi-client scenarios, wrap with a proxy or use the SSE transport.

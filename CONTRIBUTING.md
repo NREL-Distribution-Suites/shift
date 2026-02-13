@@ -132,38 +132,37 @@ We follow PEP 8 with some modifications enforced by Ruff:
 
 ### Docstring Format
 
-Use Google-style docstrings:
+Use NumPy-style docstrings:
 
 ```python
 def function_name(param1: str, param2: int) -> bool:
-    """Brief description of function.
-    
+    """Brief one-line description of the function.
+
     Longer description if needed, explaining the purpose
     and behavior of the function.
-    
+
     Parameters
     ----------
     param1 : str
         Description of param1.
     param2 : int
         Description of param2.
-        
+
     Returns
     -------
     bool
         Description of return value.
-        
+
     Raises
     ------
     ValueError
         When invalid input is provided.
-        
+
     Examples
     --------
     >>> function_name("test", 5)
     True
     """
-    pass
 ```
 
 ### Type Hints
@@ -171,14 +170,13 @@ def function_name(param1: str, param2: int) -> bool:
 Use type hints throughout:
 
 ```python
-from typing import List, Dict, Optional
+from typing import Optional
 
 def process_data(
-    data: List[float],
-    config: Optional[Dict[str, str]] = None
-) -> Dict[str, float]:
+    data: list[float],
+    config: Optional[dict[str, str]] = None,
+) -> dict[str, float]:
     """Process data with optional configuration."""
-    pass
 ```
 
 ## Testing Guidelines
@@ -192,7 +190,7 @@ def process_data(
 
 ### Test Coverage
 
-- Aim for >80% code coverage
+- Aim for > 80% code coverage on new code
 - Test both success and failure cases
 - Test edge cases and boundary conditions
 - Use parametrized tests for multiple scenarios
@@ -201,12 +199,14 @@ Example:
 
 ```python
 import pytest
+from shift import DistributionGraph, NodeModel
+from infrasys import Location
 
 @pytest.fixture
 def sample_graph():
-    """Fixture providing a sample graph for testing."""
+    """Fixture providing a graph with one node."""
     graph = DistributionGraph()
-    # Setup graph
+    graph.add_node(NodeModel(name="n1", location=Location(x=-97.3, y=32.7)))
     return graph
 
 @pytest.mark.parametrize("input,expected", [
@@ -278,8 +278,8 @@ Include:
 
 ## Questions and Support
 
-- **Issues**: Use GitHub Issues for bugs and features
-- **Discussions**: Use GitHub Discussions for questions
+- **Issues**: Use [GitHub Issues](https://github.com/NREL-Distribution-Suites/shift/issues) for bugs and feature requests
+- **Discussions**: Use [GitHub Discussions](https://github.com/NREL-Distribution-Suites/shift/discussions) for questions
 - **Email**: Contact maintainers for sensitive issues
 
 ## License
