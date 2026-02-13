@@ -101,8 +101,8 @@ def _index_docs(project_root: Path) -> tuple[dict[str, str], dict[str, str]]:
             try:
                 docs_index[key] = full_path.read_text(encoding="utf-8")
                 docs_descriptions[key] = _DOC_DESCRIPTIONS.get(key, "")
-            except Exception:
-                pass  # Skip files that can't be read
+            except OSError:
+                continue  # Skip files that can't be read
 
     return docs_index, docs_descriptions
 
