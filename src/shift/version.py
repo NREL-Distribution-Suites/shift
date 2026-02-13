@@ -3,7 +3,7 @@ import subprocess
 import platform
 import sys
 
-VERSION = "0.6.1"
+VERSION = "0.6.2"
 
 
 def is_git_repo(dir: Path) -> bool:

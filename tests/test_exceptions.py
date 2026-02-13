@@ -3,83 +3,155 @@
 import pytest
 
 from shift.exceptions import (
+    ShiftException,
+    GraphError,
+    MapperError,
+    EquipmentError,
+    SystemBuildError,
     EdgeAlreadyExists,
     EdgeDoesNotExist,
     NodeAlreadyExists,
     NodeDoesNotExist,
     VsourceNodeAlreadyExists,
-    VsourceNodeDoesNotExists,
+    VsourceNodeDoesNotExist,
+    VsourceNodeDoesNotExists,  # backward-compatible alias
     InvalidInputError,
+    InvalidAssetPhase,
     EmptyGraphError,
+    InvalidNodeDataError,
+    InvalidEdgeDataError,
     EquipmentNotFoundError,
+    WrongEquipmentAssigned,
+    AllocationMappingError,
+    InvalidPhaseAllocationMethod,
+    MissingTransformerMapping,
+    UnsupportedTransformerType,
+    MissingVoltageMappingError,
+    UnsupportedBranchEquipmentType,
+    UnsupportedEdgeTypeError,
+    WindingMismatchError,
+    InvalidSplitPhaseWindingError,
 )
 
 
-class TestExceptions:
-    """Test cases for custom exceptions."""
+class TestExceptionMessages:
+    """Test that each exception preserves its message."""
 
-    def test_edge_already_exists(self):
-        """Test EdgeAlreadyExists exception."""
-        with pytest.raises(EdgeAlreadyExists) as exc_info:
-            raise EdgeAlreadyExists("Edge already exists")
-        assert "Edge already exists" in str(exc_info.value)
+    @pytest.mark.parametrize(
+        "exc_cls,message",
+        [
+            (EdgeAlreadyExists, "Edge already exists"),
+            (EdgeDoesNotExist, "Edge not found"),
+            (NodeAlreadyExists, "Node already exists"),
+            (NodeDoesNotExist, "Node not found"),
+            (VsourceNodeAlreadyExists, "Vsource already exists"),
+            (VsourceNodeDoesNotExist, "Vsource not found"),
+            (InvalidInputError, "Invalid input provided"),
+            (InvalidAssetPhase, "Bad phase combo"),
+            (EmptyGraphError, "Graph is empty"),
+            (InvalidNodeDataError, "Bad node data"),
+            (InvalidEdgeDataError, "Bad edge data"),
+            (EquipmentNotFoundError, "Equipment not found"),
+            (WrongEquipmentAssigned, "Wrong equipment"),
+            (AllocationMappingError, "Allocation failed"),
+            (InvalidPhaseAllocationMethod, "Bad method"),
+            (MissingTransformerMapping, "Missing mapping"),
+            (UnsupportedTransformerType, "Unsupported type"),
+            (MissingVoltageMappingError, "Missing voltages"),
+            (UnsupportedBranchEquipmentType, "Unsupported branch"),
+            (UnsupportedEdgeTypeError, "Unsupported edge"),
+            (WindingMismatchError, "Winding mismatch"),
+            (InvalidSplitPhaseWindingError, "Bad split phase"),
+        ],
+    )
+    def test_message_preserved(self, exc_cls, message):
+        with pytest.raises(exc_cls, match=message):
+            raise exc_cls(message)
 
-    def test_edge_does_not_exist(self):
-        """Test EdgeDoesNotExist exception."""
-        with pytest.raises(EdgeDoesNotExist) as exc_info:
-            raise EdgeDoesNotExist("Edge not found")
-        assert "Edge not found" in str(exc_info.value)
 
-    def test_node_already_exists(self):
-        """Test NodeAlreadyExists exception."""
-        with pytest.raises(NodeAlreadyExists) as exc_info:
-            raise NodeAlreadyExists("Node already exists")
-        assert "Node already exists" in str(exc_info.value)
+class TestExceptionHierarchy:
+    """Test that exceptions form a proper hierarchy rooted at ShiftException."""
 
-    def test_node_does_not_exist(self):
-        """Test NodeDoesNotExist exception."""
-        with pytest.raises(NodeDoesNotExist) as exc_info:
-            raise NodeDoesNotExist("Node not found")
-        assert "Node not found" in str(exc_info.value)
+    def test_all_inherit_from_shift_exception(self):
+        for cls in [
+            GraphError,
+            MapperError,
+            EquipmentError,
+            SystemBuildError,
+            EdgeAlreadyExists,
+            EdgeDoesNotExist,
+            NodeAlreadyExists,
+            NodeDoesNotExist,
+            VsourceNodeAlreadyExists,
+            VsourceNodeDoesNotExist,
+            EmptyGraphError,
+            InvalidNodeDataError,
+            InvalidEdgeDataError,
+            InvalidInputError,
+            InvalidAssetPhase,
+            AllocationMappingError,
+            InvalidPhaseAllocationMethod,
+            MissingTransformerMapping,
+            UnsupportedTransformerType,
+            MissingVoltageMappingError,
+            UnsupportedBranchEquipmentType,
+            EquipmentNotFoundError,
+            WrongEquipmentAssigned,
+            UnsupportedEdgeTypeError,
+            WindingMismatchError,
+            InvalidSplitPhaseWindingError,
+        ]:
+            assert issubclass(cls, ShiftException), f"{cls.__name__} must inherit ShiftException"
 
-    def test_vsource_node_already_exists(self):
-        """Test VsourceNodeAlreadyExists exception."""
-        with pytest.raises(VsourceNodeAlreadyExists) as exc_info:
-            raise VsourceNodeAlreadyExists("Vsource already exists")
-        assert "Vsource already exists" in str(exc_info.value)
+    def test_graph_errors(self):
+        for cls in [
+            NodeAlreadyExists,
+            NodeDoesNotExist,
+            EdgeAlreadyExists,
+            EdgeDoesNotExist,
+            VsourceNodeAlreadyExists,
+            VsourceNodeDoesNotExist,
+            EmptyGraphError,
+            InvalidNodeDataError,
+            InvalidEdgeDataError,
+        ]:
+            assert issubclass(cls, GraphError), f"{cls.__name__} must inherit GraphError"
 
-    def test_vsource_node_does_not_exist(self):
-        """Test VsourceNodeDoesNotExists exception."""
-        with pytest.raises(VsourceNodeDoesNotExists) as exc_info:
-            raise VsourceNodeDoesNotExists("Vsource not found")
-        assert "Vsource not found" in str(exc_info.value)
+    def test_mapper_errors(self):
+        for cls in [
+            AllocationMappingError,
+            InvalidPhaseAllocationMethod,
+            MissingTransformerMapping,
+            UnsupportedTransformerType,
+            MissingVoltageMappingError,
+            UnsupportedBranchEquipmentType,
+        ]:
+            assert issubclass(cls, MapperError), f"{cls.__name__} must inherit MapperError"
 
-    def test_invalid_input_error(self):
-        """Test InvalidInputError exception."""
-        with pytest.raises(InvalidInputError) as exc_info:
-            raise InvalidInputError("Invalid input provided")
-        assert "Invalid input provided" in str(exc_info.value)
+    def test_equipment_errors(self):
+        for cls in [EquipmentNotFoundError, WrongEquipmentAssigned]:
+            assert issubclass(cls, EquipmentError), f"{cls.__name__} must inherit EquipmentError"
 
-    def test_empty_graph_error(self):
-        """Test EmptyGraphError exception."""
-        with pytest.raises(EmptyGraphError) as exc_info:
-            raise EmptyGraphError("Graph is empty")
-        assert "Graph is empty" in str(exc_info.value)
+    def test_system_build_errors(self):
+        for cls in [UnsupportedEdgeTypeError, WindingMismatchError, InvalidSplitPhaseWindingError]:
+            assert issubclass(
+                cls, SystemBuildError
+            ), f"{cls.__name__} must inherit SystemBuildError"
 
-    def test_equipment_not_found_error(self):
-        """Test EquipmentNotFoundError exception."""
-        with pytest.raises(EquipmentNotFoundError) as exc_info:
-            raise EquipmentNotFoundError("Equipment not found")
-        assert "Equipment not found" in str(exc_info.value)
+    def test_input_validation_errors(self):
+        assert issubclass(InvalidAssetPhase, InvalidInputError)
 
-    def test_exception_inheritance(self):
-        """Test that all custom exceptions inherit from Exception."""
-        assert issubclass(EdgeAlreadyExists, Exception)
-        assert issubclass(EdgeDoesNotExist, Exception)
-        assert issubclass(NodeAlreadyExists, Exception)
-        assert issubclass(NodeDoesNotExist, Exception)
-        assert issubclass(VsourceNodeAlreadyExists, Exception)
-        assert issubclass(VsourceNodeDoesNotExists, Exception)
-        assert issubclass(InvalidInputError, Exception)
-        assert issubclass(EmptyGraphError, Exception)
-        assert issubclass(EquipmentNotFoundError, Exception)
+    def test_backward_compatible_alias(self):
+        """VsourceNodeDoesNotExists (old spelling) must still work."""
+        assert VsourceNodeDoesNotExists is VsourceNodeDoesNotExist
+
+    def test_catch_all_shift_errors(self):
+        """A single except ShiftException should catch any shift error."""
+        with pytest.raises(ShiftException):
+            raise NodeAlreadyExists("test")
+        with pytest.raises(ShiftException):
+            raise AllocationMappingError("test")
+        with pytest.raises(ShiftException):
+            raise EquipmentNotFoundError("test")
+        with pytest.raises(ShiftException):
+            raise WindingMismatchError("test")

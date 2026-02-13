@@ -37,10 +37,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pre-commit", "pytest", "pytest-cov", "pytest-mock", "ruff"]
 doc = ["sphinx", "pydata-sphinx-theme", "myst-parser", "autodoc_pydantic"]
-mcp = ["mcp>=0.9.0", "pyyaml"]
+mcp = ["mcp[cli]>=1.2.0", "pyyaml"]
 
 [project.scripts]
-shift-mcp-server = "shift.mcp_server.server:cli_main"
+shift-mcp-server = "shift.mcp_server.__main__:main"
 
 [project.urls]
 Documentation = "https://github.com/NREL-Distribution-Suites/shift#readme"

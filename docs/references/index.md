@@ -1,5 +1,14 @@
-# References
+# API Reference
 
+Detailed auto-generated documentation for all public classes and functions.
+
+```{toctree}
+:hidden: true
+:maxdepth: 2
+:caption: Data Model
+
+data_model
+```
 
 ```{toctree}
 :hidden: true
@@ -8,6 +17,7 @@
 
 dist_graph
 openstreet_graph
+prsg
 ```
 
 ```{toctree}
@@ -28,16 +38,14 @@ equipment_mapper
 system_builder
 ```
 
-
 ```{toctree}
 :hidden: true
 :maxdepth: 2
-:caption: Openstreet Data
+:caption: OpenStreetMap Data
 
 openstreet_parcel
 openstreet_roads
 ```
-
 
 ```{toctree}
 :hidden: true
@@ -54,16 +62,8 @@ split_edges
 ```{toctree}
 :hidden: true
 :maxdepth: 2
-:caption: Plots
+:caption: Visualization
 
 plot_manager
 plots
-```
-
-```{toctree}
-:hidden: true
-:maxdepth: 2
-:caption: Data Model
-
-data_model
 ```

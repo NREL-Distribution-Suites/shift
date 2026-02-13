@@ -1,36 +1,58 @@
-# Building Distribution Graph
+# Building a Distribution Graph
 
-Assuming you have list of parcels (of type `ParcelModel` from shift). Here is a script to
-generate distribution graph.
+Once you have a list of `ParcelModel` objects (see [Fetching Parcels](fetching_parcels.md)), the next step is to construct a `DistributionGraph` — the connectivity model of nodes and edges that represents the distribution network.
 
+## Cluster Parcels
+
+First, cluster parcels into groups. Each cluster center becomes a candidate distribution transformer location. A common heuristic is roughly two customers per transformer, but you can adjust this to match your design criteria.
 
 ```python
-from shift import ParcelModel, get_kmeans_clusters, PRSG
+from shift import ParcelModel, GeoLocation, get_kmeans_clusters
 
 def _get_parcel_points(parcels: list[ParcelModel]) -> list[GeoLocation]:
-    return [el.geometry[0] if isinstance(el.geometry, list) else el.geometry for el in parcels]
+    """Extract a single GeoLocation per parcel (centroid for polygons)."""
+    return [
+        el.geometry[0] if isinstance(el.geometry, list) else el.geometry
+        for el in parcels
+    ]
 
+num_clusters = max(len(parcels) // 2, 1)
+clusters = get_kmeans_clusters(num_clusters, _get_parcel_points(parcels))
+```
 
-num_clusters = int(len(points) / 2)
-clusters = get_kmeans_clusters(max([num_clusters, 1]), _get_parcel_points(points))
+## Build the Graph with PRSG
+
+`PRSG` (Primary–Secondary Road-network Graph) builds the distribution graph in two steps:
+
+1. **Primary network** — derived by reducing the road network in the area to a spanning tree.
+2. **Secondary network** — built as a 2-D grid connecting transformer locations to nearby customer parcels.
+
+The node closest to `source_location` is treated as the substation.
+
+```python
+from shift import PRSG, GeoLocation
 
 builder = PRSG(
     groups=clusters,
-    source_location=GeoLocation(-87.7044461105055, 41.049957636092465),
+    source_location=GeoLocation(-97.3, 32.75),  # substation coordinates
 )
 graph = builder.get_distribution_graph()
 ```
-Here we are first creating clusters of approximately 10 customers each and using cluster center
-as distribution transformer location to build distribution graph. A distribution graph is simply a
-connectivity model between nodes and edges. `PRSG` class builds primary distribution network
-by reducing road network available in the area abd builds secondary network using 2d grid approach.
-The node closest to `source_location` will be treated as substation.
 
+## Visualize the Graph
 
-If you want to visualize this graph, you can again use `PlotManager`.
+You can overlay the distribution graph on the parcel plot from the previous step:
 
 ```python
-from shift import add_distribution_graph_to_plot, PlotManager
+from shift import add_distribution_graph_to_plot, PlotManager, GeoLocation
+import osmnx as ox
+
+center = GeoLocation(*reversed(ox.geocode("Fort Worth, TX")))
+plot_manager = PlotManager(center=center)
 add_distribution_graph_to_plot(graph, plot_manager)
 plot_manager.show()
 ```
+
+## Next Step
+
+Proceed to [Updating Branch Types](updating_branch_type.md) to replace generic branch types with the specific equipment models your simulation requires.

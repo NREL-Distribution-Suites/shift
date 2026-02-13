@@ -1,288 +1,188 @@
-"""Main MCP server implementation for NREL-shift."""
+"""NREL-shift MCP Server — main application wiring."""
 
-import sys
-import asyncio
-from typing import Any, Optional
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, ImageContent
-from loguru import logger
+from mcp.server.fastmcp import FastMCP
 
-from shift.mcp_server.config import config, load_config
-from shift.mcp_server.state import StateManager
-from shift.mcp_server import tools
+from shift.mcp_server.state import AppContext
 
 
-def create_server() -> tuple[Server, StateManager]:  # noqa: C901
-    """Create and configure the MCP server.
+# ---------------------------------------------------------------------------
+# Documentation indexer
+# ---------------------------------------------------------------------------
 
-    Returns
-    -------
-    tuple[Server, StateManager]
-        Configured server and state manager
-    """
-    # Initialize server
-    server = Server(config.server_name)
+# Map of doc key → relative path from project root
+_DOC_FILES: dict[str, str] = {
+    "readme": "README.md",
+    "quickstart": "QUICKSTART.md",
+    "changelog": "CHANGELOG.md",
+    "contributing": "CONTRIBUTING.md",
+    "improvements": "IMPROVEMENTS.md",
+    "api_reference": "docs/API_REFERENCE.md",
+    # Usage guides
+    "usage/index": "docs/usage/index.md",
+    "usage/building_graph": "docs/usage/building_graph.md",
+    "usage/building_system": "docs/usage/building_system.md",
+    "usage/complete_example": "docs/usage/complete_example.md",
+    "usage/fetching_parcels": "docs/usage/fetching_parcels.md",
+    "usage/mapping_equipment": "docs/usage/mapping_equipment.md",
+    "usage/mapping_phases": "docs/usage/mapping_phases.md",
+    "usage/mapping_voltages": "docs/usage/mapping_voltages.md",
+    "usage/updating_branch_type": "docs/usage/updating_branch_type.md",
+    # Module references
+    "references/index": "docs/references/index.md",
+    "references/clustering": "docs/references/clustering.md",
+    "references/data_model": "docs/references/data_model.md",
+    "references/dist_graph": "docs/references/dist_graph.md",
+    "references/mesh_network": "docs/references/mesh_network.md",
+    "references/nearest_points": "docs/references/nearest_points.md",
+    "references/openstreet_graph": "docs/references/openstreet_graph.md",
+    "references/openstreet_parcel": "docs/references/openstreet_parcel.md",
+    "references/openstreet_roads": "docs/references/openstreet_roads.md",
+    "references/plot_manager": "docs/references/plot_manager.md",
+    "references/plots": "docs/references/plots.md",
+    "references/polygon_from_points": "docs/references/polygon_from_points.md",
+    "references/split_edges": "docs/references/split_edges.md",
+    # RST reference files
+    "references/equipment_mapper": "docs/references/equipment_mapper.rst",
+    "references/phase_mapper": "docs/references/phase_mapper.rst",
+    "references/system_builder": "docs/references/system_builder.rst",
+    "references/voltage_mapper": "docs/references/voltage_mapper.rst",
+}
 
-    # Initialize state manager
-    state_manager = StateManager(storage_dir=config.state_storage_dir)
+_DOC_DESCRIPTIONS: dict[str, str] = {
+    "readme": "Project overview, features, and installation instructions.",
+    "quickstart": "Quick-start guide to get up and running.",
+    "changelog": "Release history and version changes.",
+    "contributing": "Contribution guidelines.",
+    "improvements": "Planned improvements and roadmap.",
+    "api_reference": "Full API reference documentation.",
+    "usage/index": "Usage guides table of contents.",
+    "usage/building_graph": "How to build a distribution graph.",
+    "usage/building_system": "How to build a distribution system.",
+    "usage/complete_example": "Complete end-to-end workflow example.",
+    "usage/fetching_parcels": "How to fetch parcels from OpenStreetMap.",
+    "usage/mapping_equipment": "How to map equipment to graph edges.",
+    "usage/mapping_phases": "How to assign phases to transformers.",
+    "usage/mapping_voltages": "How to assign voltages to transformers.",
+    "usage/updating_branch_type": "How to update branch types.",
+    "references/index": "Module reference table of contents.",
+    "references/clustering": "get_kmeans_clusters utility reference.",
+    "references/data_model": "Data model (GeoLocation, ParcelModel, etc.) reference.",
+    "references/dist_graph": "DistributionGraph class reference.",
+    "references/mesh_network": "Mesh network utility reference.",
+    "references/nearest_points": "Nearest-point matching utility reference.",
+    "references/openstreet_graph": "OpenStreetGraphBuilder reference.",
+    "references/openstreet_parcel": "Parcel fetcher reference.",
+    "references/openstreet_roads": "Road network fetcher reference.",
+    "references/plot_manager": "Plot manager reference.",
+    "references/plots": "Plotting utilities reference.",
+    "references/polygon_from_points": "Polygon-from-points utility reference.",
+    "references/split_edges": "Edge splitting utility reference.",
+    "references/equipment_mapper": "Equipment mapper classes reference.",
+    "references/phase_mapper": "Phase mapper classes reference.",
+    "references/system_builder": "DistributionSystemBuilder reference.",
+    "references/voltage_mapper": "Voltage mapper classes reference.",
+}
 
-    # Configure logging
-    logger.remove()
-    logger.add(
-        sys.stderr,
-        level=config.log_level,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+
+def _index_docs(project_root: Path) -> tuple[dict[str, str], dict[str, str]]:
+    """Read all documentation files into an in-memory index."""
+    docs_index: dict[str, str] = {}
+    docs_descriptions: dict[str, str] = {}
+
+    for key, rel_path in _DOC_FILES.items():
+        full_path = project_root / rel_path
+        if full_path.exists():
+            try:
+                docs_index[key] = full_path.read_text(encoding="utf-8")
+                docs_descriptions[key] = _DOC_DESCRIPTIONS.get(key, "")
+            except Exception:
+                pass  # Skip files that can't be read
+
+    return docs_index, docs_descriptions
+
+
+# ---------------------------------------------------------------------------
+# Lifespan context — sets up AppContext for the session
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+    """Initialise session state: load config, index docs, yield context."""
+    project_root = Path(__file__).resolve().parent.parent
+    docs_index, docs_descriptions = _index_docs(project_root)
+
+    ctx = AppContext()
+    ctx.docs_index = docs_index
+    ctx.docs_descriptions = docs_descriptions
+
+    yield ctx
+
+
+# ---------------------------------------------------------------------------
+# Build the FastMCP application
+# ---------------------------------------------------------------------------
+
+
+def create_server() -> FastMCP:
+    """Create and configure the FastMCP server instance."""
+    mcp = FastMCP(
+        "nrel-shift",
+        instructions=(
+            "NREL-shift MCP server for building synthetic power distribution "
+            "feeder models from OpenStreetMap geospatial data. Use the tools "
+            "to fetch data, build graphs, configure mappers, build systems, "
+            "and query project documentation."
+        ),
+        lifespan=app_lifespan,
     )
 
-    logger.info(f"Initializing {config.server_name} v{config.server_version}")
+    # -- Register tool modules -------------------------------------------------
+    from shift.mcp_server.tools.data_acquisition import parcels, roads, clustering
+    from shift.mcp_server.tools.graph import management, nodes, edges, query, builder
+    from shift.mcp_server.tools.mapper import phase, voltage, equipment
+    from shift.mcp_server.tools.system import builder as sys_builder, export
+    from shift.mcp_server.tools.utilities import geo, network, nearest
+    from shift.mcp_server.tools.documentation import search, read
 
-    # Register tools
-    @server.list_tools()
-    async def list_tools() -> list[Tool]:
-        """List available MCP tools."""
-        return [
-            Tool(
-                name="fetch_parcels",
-                description="Fetch building parcels from OpenStreetMap for a given location",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "location": {
-                            "oneOf": [
-                                {
-                                    "type": "string",
-                                    "description": "Address string (e.g., 'Fort Worth, TX')",
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "longitude": {"type": "number"},
-                                        "latitude": {"type": "number"},
-                                    },
-                                    "required": ["longitude", "latitude"],
-                                },
-                            ],
-                            "description": "Location as address string or coordinates",
-                        },
-                        "distance_meters": {
-                            "type": "number",
-                            "description": f"Search distance in meters (max: {config.max_search_distance_m})",
-                            "default": config.default_search_distance_m,
-                        },
-                    },
-                    "required": ["location"],
-                },
-            ),
-            Tool(
-                name="cluster_parcels",
-                description="Cluster parcels into groups using K-means for transformer placement",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "parcels": {
-                            "type": "array",
-                            "description": "Array of parcel objects with geometry",
-                            "items": {"type": "object"},
-                        },
-                        "num_clusters": {
-                            "type": "integer",
-                            "description": "Number of clusters to create",
-                            "default": config.default_cluster_count,
-                        },
-                    },
-                    "required": ["parcels"],
-                },
-            ),
-            Tool(
-                name="create_graph",
-                description="Create a new empty distribution graph",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string", "description": "Optional name for the graph"}
-                    },
-                },
-            ),
-            Tool(
-                name="add_node",
-                description="Add a node to a distribution graph",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "graph_id": {"type": "string", "description": "Graph identifier"},
-                        "node_name": {"type": "string", "description": "Name for the node"},
-                        "longitude": {"type": "number", "description": "Longitude coordinate"},
-                        "latitude": {"type": "number", "description": "Latitude coordinate"},
-                        "assets": {
-                            "type": "array",
-                            "description": "Asset types: DistributionLoad, DistributionSolar, DistributionCapacitor, DistributionVoltageSource",
-                            "items": {"type": "string"},
-                        },
-                    },
-                    "required": ["graph_id", "node_name", "longitude", "latitude"],
-                },
-            ),
-            Tool(
-                name="add_edge",
-                description="Add an edge (line or transformer) to a distribution graph",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "graph_id": {"type": "string", "description": "Graph identifier"},
-                        "from_node": {"type": "string", "description": "Source node name"},
-                        "to_node": {"type": "string", "description": "Target node name"},
-                        "edge_name": {"type": "string", "description": "Name for the edge"},
-                        "edge_type": {
-                            "type": "string",
-                            "description": "Edge type",
-                            "enum": ["DistributionBranchBase", "DistributionTransformer"],
-                        },
-                        "length_meters": {
-                            "type": "number",
-                            "description": "Edge length in meters (required for branches)",
-                        },
-                    },
-                    "required": ["graph_id", "from_node", "to_node", "edge_name", "edge_type"],
-                },
-            ),
-            Tool(
-                name="query_graph",
-                description="Query information about a distribution graph",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "graph_id": {"type": "string", "description": "Graph identifier"},
-                        "query_type": {
-                            "type": "string",
-                            "description": "Type of query",
-                            "enum": ["summary", "nodes", "edges", "vsource"],
-                            "default": "summary",
-                        },
-                    },
-                    "required": ["graph_id"],
-                },
-            ),
-            Tool(
-                name="list_resources",
-                description="List available graphs and systems",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "resource_type": {
-                            "type": "string",
-                            "description": "Type of resources to list",
-                            "enum": ["all", "graphs", "systems"],
-                            "default": "all",
-                        }
-                    },
-                },
-            ),
-        ]
+    parcels.register(mcp)
+    roads.register(mcp)
+    clustering.register(mcp)
 
-    @server.call_tool()
-    async def call_tool(name: str, arguments: Any) -> list[TextContent | ImageContent]:
-        """Handle tool calls."""
-        try:
-            logger.debug(f"Tool call: {name} with arguments: {arguments}")
+    management.register(mcp)
+    nodes.register(mcp)
+    edges.register(mcp)
+    query.register(mcp)
+    builder.register(mcp)
 
-            # Route to appropriate tool handler
-            if name == "fetch_parcels":
-                result = tools.fetch_parcels_tool(
-                    state_manager, arguments.get("location"), arguments.get("distance_meters")
-                )
-            elif name == "cluster_parcels":
-                result = tools.cluster_parcels_tool(
-                    state_manager, arguments.get("parcels"), arguments.get("num_clusters")
-                )
-            elif name == "create_graph":
-                result = tools.create_graph_tool(state_manager, arguments.get("name"))
-            elif name == "add_node":
-                result = tools.add_node_tool(
-                    state_manager,
-                    arguments["graph_id"],
-                    arguments["node_name"],
-                    arguments["longitude"],
-                    arguments["latitude"],
-                    arguments.get("assets"),
-                )
-            elif name == "add_edge":
-                result = tools.add_edge_tool(
-                    state_manager,
-                    arguments["graph_id"],
-                    arguments["from_node"],
-                    arguments["to_node"],
-                    arguments["edge_name"],
-                    arguments["edge_type"],
-                    arguments.get("length_meters"),
-                )
-            elif name == "query_graph":
-                result = tools.query_graph_tool(
-                    state_manager, arguments["graph_id"], arguments.get("query_type", "summary")
-                )
-            elif name == "list_resources":
-                result = tools.list_resources_tool(
-                    state_manager, arguments.get("resource_type", "all")
-                )
-            else:
-                result = {"success": False, "error": f"Unknown tool: {name}"}
+    phase.register(mcp)
+    voltage.register(mcp)
+    equipment.register(mcp)
 
-            # Format response
-            import json
+    sys_builder.register(mcp)
+    export.register(mcp)
 
-            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+    geo.register(mcp)
+    network.register(mcp)
+    nearest.register(mcp)
 
-        except Exception as e:
-            logger.error(f"Error in tool {name}: {e}")
-            import json
+    search.register(mcp)
+    read.register(mcp)
 
-            return [
-                TextContent(
-                    type="text", text=json.dumps({"success": False, "error": str(e)}, indent=2)
-                )
-            ]
+    # -- Register resources ----------------------------------------------------
+    from shift.mcp_server.resources import docs as docs_resource
 
-    return server, state_manager
+    docs_resource.register(mcp)
 
+    # -- Register prompts ------------------------------------------------------
+    from shift.mcp_server.prompts import workflows
 
-async def main(config_path: Optional[Path] = None):
-    """Run the MCP server.
+    workflows.register(mcp)
 
-    Parameters
-    ----------
-    config_path : Optional[Path]
-        Path to configuration file
-    """
-    # Load configuration
-    if config_path:
-        global config
-        config = load_config(config_path)
-
-    # Create server
-    server, state_manager = create_server()
-
-    logger.info(f"Starting {config.server_name} via stdio")
-
-    # Run server
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
-
-
-def cli_main():
-    """CLI entry point."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="NREL-shift MCP Server for distribution system modeling"
-    )
-    parser.add_argument("--config", type=Path, help="Path to configuration file")
-
-    args = parser.parse_args()
-
-    asyncio.run(main(args.config))
-
-
-if __name__ == "__main__":
-    cli_main()
+    return mcp

@@ -7,7 +7,12 @@ from gdm.distribution.components import DistributionTransformer
 from gdm.distribution.enums import Phase
 import numpy as np
 import networkx as nx
-from shift.exceptions import AllocationMappingError
+from shift.exceptions import (
+    AllocationMappingError,
+    InvalidPhaseAllocationMethod,
+    MissingTransformerMapping,
+    UnsupportedTransformerType,
+)
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from networkx.algorithms.approximation import steiner_tree
 
@@ -90,7 +95,7 @@ class BalancedPhaseMapper(BasePhaseMapper):
         )
         if missing_transformers:
             msg = f"Missing transformers from mapping {missing_transformers=}"
-            raise ValueError(msg)
+            raise MissingTransformerMapping(msg)
         self._transformer_phase_mapping: dict[str, set[Phase]] = {}
         self.method = method
         super().__init__(graph)
@@ -170,7 +175,7 @@ class BalancedPhaseMapper(BasePhaseMapper):
                 )
             case _:
                 msg = f"Invalid method supplied {self.method=}"
-                raise ValueError(msg)
+                raise InvalidPhaseAllocationMethod(msg)
 
         allocated_trs = set([el for item in allocations for el in item])
         if set(tr_names) != allocated_trs:
@@ -214,7 +219,7 @@ class BalancedPhaseMapper(BasePhaseMapper):
                 )
             else:
                 msg = f"{tr_type=} not supported yet."
-                raise ValueError(msg)
+                raise UnsupportedTransformerType(msg)
 
     def _update_node_phases_upward_from_transformer(
         self,
@@ -281,7 +286,7 @@ class BalancedPhaseMapper(BasePhaseMapper):
         asset_mapping: dict[str, dict[VALID_NODE_TYPES, set[Phase]]] = {}
         for node in self.graph.get_nodes():
             asset_mapping[node.name] = {
-                asset: self.node_phase_mapping[node.name] for asset in node.assets
+                asset: self.node_phase_mapping[node.name] for asset in (node.assets or set())
             }
         return asset_mapping
 

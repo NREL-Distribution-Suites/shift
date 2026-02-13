@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "shift": {
+      "type": "stdio",
+      "command": "/opt/homebrew/Caskroom/miniconda/base/bin/shift-mcp-server",
+      "env": {}
+    }
+  }
+}
+

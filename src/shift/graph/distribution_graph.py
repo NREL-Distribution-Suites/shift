@@ -8,10 +8,12 @@ from gdm.distribution.components import DistributionVoltageSource
 from shift.exceptions import (
     EdgeAlreadyExists,
     EdgeDoesNotExist,
+    InvalidEdgeDataError,
+    InvalidNodeDataError,
     NodeAlreadyExists,
     NodeDoesNotExist,
     VsourceNodeAlreadyExists,
-    VsourceNodeDoesNotExists,
+    VsourceNodeDoesNotExist,
 )
 from shift.data_model import NodeModel, EdgeModel
 
@@ -188,12 +190,12 @@ class DistributionGraph:
         node_data = self._graph.nodes[node_name]
         if self.node_data_ppty not in node_data:
             msg = f"{self.node_data_ppty} does not exist in {node_data=} for {node_name=}"
-            raise ValueError(msg)
+            raise InvalidNodeDataError(msg)
 
         node_obj = node_data.get(self.node_data_ppty)
         if not isinstance(node_obj, NodeModel):
             msg = f"{node_obj=} is not of type NodeModel"
-            raise ValueError(msg)
+            raise InvalidNodeDataError(msg)
         return node_obj
 
     def get_nodes(
@@ -302,14 +304,14 @@ class DistributionGraph:
 
         edge_data = self._graph.get_edge_data(from_node, to_node)
         if self.edge_data_ppty not in edge_data:
-            msg = f"{self.node_data_ppty} does not exist in {edge_data=} for {from_node, to_node}"
-            raise ValueError(msg)
+            msg = f"{self.edge_data_ppty} does not exist in {edge_data=} for {from_node, to_node}"
+            raise InvalidEdgeDataError(msg)
 
         edg_obj = edge_data.get(self.edge_data_ppty)
 
         if not isinstance(edg_obj, EdgeModel):
             msg = f"{edge_data=} is not of type {EdgeModel}"
-            raise ValueError(msg)
+            raise InvalidEdgeDataError(msg)
         return edg_obj
 
     def get_edges(
@@ -339,5 +341,5 @@ class DistributionGraph:
     def get_dfs_tree(self) -> nx.DiGraph:
         """Internal method to directed dfs tree from vsource."""
         if self.vsource_node is None:
-            raise VsourceNodeDoesNotExists("Vsource node does not exist on this graph.")
+            raise VsourceNodeDoesNotExist("Vsource node does not exist on this graph.")
         return nx.dfs_tree(self._graph, source=self.vsource_node)
