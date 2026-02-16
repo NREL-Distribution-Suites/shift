@@ -1,6 +1,8 @@
+![Tests](https://github.com/NLR-Distribution-Suite/shift/actions/workflows/tests.yml/badge.svg) • ![PR Tests](https://github.com/NLR-Distribution-Suite/shift/actions/workflows/pull_request_tests.yml/badge.svg) • ![Docs](https://github.com/NLR-Distribution-Suite/shift/actions/workflows/gh-pages.yml/badge.svg) • ![Publish](https://github.com/NLR-Distribution-Suite/shift/actions/workflows/publish.yml/badge.svg) • ![PyPI Downloads](https://img.shields.io/pypi/dm/nrel-shift) • ![License](https://img.shields.io/github/license/NLR-Distribution-Suite/shift) • ![Issues](https://img.shields.io/github/issues/NLR-Distribution-Suite/shift) • ![CodeFactor](https://www.codefactor.io/repository/github/NLR-Distribution-Suite/shift/badge) • ![Codecov](https://img.shields.io/codecov/c/github/NLR-Distribution-Suite/shift) • ![MCP Server](https://img.shields.io/badge/MCP_Server-enabled-brightgreen) • ![MCP Tools](https://img.shields.io/badge/MCP_Tools-33-blue)
+
 # NREL-shift
 
-A Python framework for building synthetic power distribution feeder models from open-source geospatial data. NREL-shift fetches building parcels and road networks from OpenStreetMap, constructs graph-based network topologies, and exports simulator-ready models through [Grid Data Models](https://github.com/NREL-Distribution-Suites/grid-data-models) and [Ditto](https://github.com/NREL-Distribution-Suites/ditto).
+A Python framework for building synthetic power distribution feeder models from open-source geospatial data. NREL-shift fetches building parcels and road networks from OpenStreetMap, constructs graph-based network topologies, and exports simulator-ready models through [Grid Data Models](https://github.com/NLR-Distribution-Suite/grid-data-models) and [Ditto](https://github.com/NLR-Distribution-Suite/ditto).
 
 ## Features
 
@@ -23,7 +25,7 @@ pip install nrel-shift
 ### From Source
 
 ```bash
-git clone https://github.com/NREL-Distribution-Suites/shift.git
+git clone https://github.com/NLR-Distribution-Suite/shift.git
 cd shift
 pip install -e .
 ```
@@ -192,7 +194,7 @@ pytest -m "not slow"                # Skip slow tests
 - Python >= 3.10
 - [OSMnx](https://osmnx.readthedocs.io/) — OpenStreetMap data access
 - [NetworkX](https://networkx.org/) — Graph operations
-- [Grid Data Models](https://github.com/NREL-Distribution-Suites/grid-data-models) — Power system component models
+- [Grid Data Models](https://github.com/NLR-Distribution-Suite/grid-data-models) — Power system component models
 - See [pyproject.toml](./pyproject.toml) for the complete dependency list
 
 ## License
@@ -201,9 +203,9 @@ BSD-3-Clause — see [LICENSE.txt](./LICENSE.txt).
 
 ## Authors
 
-- Kapil Duwadi (Kapil.Duwadi@nrel.gov)
-- Aadil Latif (Aadil.Latif@nrel.gov)
-- Erik Pohl (Erik.Pohl@nrel.gov)
+- Kapil Duwadi (Kapil.Duwadi@nlr.gov)
+- Aadil Latif (Aadil.Latif@nlr.gov)
+- Erik Pohl (Erik.Pohl@nlr.gov)
 
 ## Citation
 
@@ -212,11 +214,11 @@ BSD-3-Clause — see [LICENSE.txt](./LICENSE.txt).
   title = {NREL-shift: Framework for Developing Synthetic Distribution Feeder Models},
   author = {Duwadi, Kapil and Latif, Aadil and Pohl, Erik},
   year = {2026},
-  url = {https://github.com/NREL-Distribution-Suites/shift}
+  url = {https://github.com/NLR-Distribution-Suite/shift}
 }
 ```
 
 ## Support
 
-- [Open an issue](https://github.com/NREL-Distribution-Suites/shift/issues) for bugs and feature requests
-- [Discussions](https://github.com/NREL-Distribution-Suites/shift/discussions) for questions
+- [Open an issue](https://github.com/NLR-Distribution-Suite/shift/issues) for bugs and feature requests
+- [Discussions](https://github.com/NLR-Distribution-Suite/shift/discussions) for questions

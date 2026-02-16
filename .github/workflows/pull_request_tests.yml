@@ -29,5 +29,5 @@ jobs:
       - uses: davidslusser/actions_python_ruff@v1.0.1
         with:
           src: "check src"
-          pip_install_command: "pip install -e .[dev,mcp]"
+          pip_install_command: "pip install -e .[dev]"
           python_version: "3.11"

@@ -16,7 +16,7 @@ body:
       options:
         - label: I have searched existing issues for a duplicate feature request and I'm sure this is new.
           required: True
-        - label: I have read and followed [the docs](https://nrel-distribution-suites.github.io/shift) and still think this is missing.
+        - label: I have read and followed [the docs](https://nlr-distribution-suite.github.io/shift) and still think this is missing.
           required: True
 
   - type: textarea

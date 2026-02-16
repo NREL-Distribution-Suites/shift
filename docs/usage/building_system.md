@@ -34,7 +34,7 @@ system.to_json(output_folder / "fort_worth_feeder.json")
 
 ## Export to a Simulator
 
-The `DistributionSystem` object is compatible with [Ditto](https://github.com/NREL-Distribution-Suites/ditto) writers for exporting to OpenDSS, CYME, Synergi, and other simulators:
+The `DistributionSystem` object is compatible with [Ditto](https://github.com/NLR-Distribution-Suite/ditto) writers for exporting to OpenDSS, CYME, Synergi, and other simulators:
 
 ```python
 # Example (requires the Ditto package)

@@ -7,7 +7,7 @@ Get a development environment running in under five minutes.
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/NREL-Distribution-Suites/shift.git
+git clone https://github.com/NLR-Distribution-Suite/shift.git
 cd shift
 
 python -m venv venv

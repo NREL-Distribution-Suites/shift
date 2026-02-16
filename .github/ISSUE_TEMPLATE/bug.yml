@@ -16,11 +16,11 @@ body:
       options:
         - label: I have searched existing issues for a duplicate issue and I'm sure this is new.
           required: True
-        - label: I have read and followed [the docs](https://nrel-distribution-suites.github.io/shift) and still think this is a bug.
+        - label: I have read and followed [the docs](https://nlr-distribution-suite.github.io/shift) and still think this is a bug.
           required: True
         - label: >
             I am certain that this is an issue with shift
-            (not my code or another library such as [grid-data-models](https://github.com/NREL-Distribution-Suites/grid-data-models))
+            (not my code or another library such as [grid-data-models](https://github.com/NLR-Distribution-Suite/grid-data-models))
           required: True
 
   - type: textarea
