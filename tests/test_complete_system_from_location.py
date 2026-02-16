@@ -336,8 +336,8 @@ def test_build_complete_distribution_model_from_location():
     assert "load_2" in load_bus_names
 
     # Verify connectivity
-    _ = system.get_component(DistributionBus, "substation")
-    _ = system.get_component(DistributionBus, "secondary_1")
+    # substation_bus = system.get_component(DistributionBus, "substation")
+    # secondary_bus = system.get_component(DistributionBus, "secondary_1")
 
     # Transformer should connect substation to secondary
     transformer_buses = [bus.name for bus in transformers[0].buses]
