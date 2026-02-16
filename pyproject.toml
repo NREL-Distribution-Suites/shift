@@ -15,9 +15,9 @@ requires-python = ">=3.10"
 license = "BSD-3-clause"
 keywords = []
 authors = [
-  { name = "Kapil Duwadi", email = "Kapil.Duwadi@nrel.gov" },
-  { name = "Aadil Latif", email = "Aadil.Latif@nrel.gov" },
-  { name = "Erik Pohl", email = "Erik.Pohl@nrel.gov" },
+  { name = "Kapil Duwadi", email = "Kapil.Duwadi@nlr.gov" },
+  { name = "Aadil Latif", email = "Aadil.Latif@nlr.gov" },
+  { name = "Erik Pohl", email = "Erik.Pohl@nlr.gov" },
 ]
 classifiers = [
   "Programming Language :: Python :: 3.11",
@@ -43,9 +43,9 @@ mcp = ["mcp[cli]>=1.2.0", "pyyaml"]
 shift-mcp-server = "shift.mcp_server.__main__:main"
 
 [project.urls]
-Documentation = "https://github.com/NREL-Distribution-Suites/shift#readme"
-Issues = "https://github.com/NREL-Distribution-Suites/shift/issues"
-Source = "https://github.com/NREL-Distribution-Suites/shift"
+Documentation = "https://github.com/NLR-Distribution-Suite/shift#readme"
+Issues = "https://github.com/NLR-Distribution-Suite/shift/issues"
+Source = "https://github.com/NLR-Distribution-Suite/shift"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

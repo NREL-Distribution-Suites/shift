@@ -1,6 +1,6 @@
 # NREL-shift
 
-A Python framework for building synthetic power distribution feeder models from open-source geospatial data. NREL-shift fetches building parcels and road networks from OpenStreetMap, constructs graph-based network topologies, and exports simulator-ready models via [Grid Data Models](https://github.com/NREL-Distribution-Suites/grid-data-models).
+A Python framework for building synthetic power distribution feeder models from open-source geospatial data. NREL-shift fetches building parcels and road networks from OpenStreetMap, constructs graph-based network topologies, and exports simulator-ready models via [Grid Data Models](https://github.com/NLR-Distribution-Suite/grid-data-models).
 
 ## Installation
 

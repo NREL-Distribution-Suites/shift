@@ -278,8 +278,8 @@ Include:
 
 ## Questions and Support
 
-- **Issues**: Use [GitHub Issues](https://github.com/NREL-Distribution-Suites/shift/issues) for bugs and feature requests
-- **Discussions**: Use [GitHub Discussions](https://github.com/NREL-Distribution-Suites/shift/discussions) for questions
+- **Issues**: Use [GitHub Issues](https://github.com/NLR-Distribution-Suite/shift/issues) for bugs and feature requests
+- **Discussions**: Use [GitHub Discussions](https://github.com/NLR-Distribution-Suite/shift/discussions) for questions
 - **Email**: Contact maintainers for sensitive issues
 
 ## License
