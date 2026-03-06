@@ -87,9 +87,9 @@ class EdgeEquipmentMapper(BaseEquipmentMapper):
         descendants = list(nx.descendants(dfs_graph, parent_node))
         load_nodes = list(
             self.graph.get_nodes(
-                filter_func=lambda x: x.name in descendants
-                and x.assets is not None
-                and DistributionLoad in x.assets
+                filter_func=lambda x: (
+                    x.name in descendants and x.assets is not None and DistributionLoad in x.assets
+                )
             )
         )
         served_load = ApparentPower(0, "kilova")
