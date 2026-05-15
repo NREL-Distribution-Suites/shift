@@ -75,7 +75,6 @@ mapped_building_type = {
     "office": ComstockBuildingTypes.MEDIUM_OFFICE,
     "stands": ComstockBuildingTypes.SMALL_HOTEL,
     "no": ComstockBuildingTypes.SMALL_OFFICE,
-    "hospital": ComstockBuildingTypes.HOSPITAL,
     "semidetached_house": RestockBuildingTypes.SINGLE_FAMILY_DETACHED,
     "residential": RestockBuildingTypes.SINGLE_FAMILY_ATTACHED,
     "dormitory": RestockBuildingTypes.MULTI_FAMILY_5_PLUS_UNITS,
@@ -154,7 +153,7 @@ class StockProfiler:
 
         try:
             exact_zip = zipcodes.matching(parcel.postal_address)[0]
-        except:
+        except (IndexError, TypeError, KeyError):
             exact_zip = zipcodes.matching(self.zip_code)[0]
         print(f"{exact_zip=}")
         loc_county = exact_zip["county"]
@@ -170,7 +169,7 @@ class StockProfiler:
             filtered_meta_a = filtered_meta[
                 filtered_meta["in.building_type"] == mapped_building_type[building_type].value
             ]
-        except:
+        except KeyError:
             filtered_meta_a = filtered_meta[
                 filtered_meta["in.geometry_building_type_recs"]
                 == mapped_building_type[building_type].value
@@ -211,7 +210,7 @@ class StockProfiler:
             print(f"Downloading file: {file_path} from zip code {zipcode}")
             print(f"AWS path: {aws_path}")
             for obj in self.bucket.objects.filter(Prefix=aws_path):
-                a = self.bucket.download_file(obj.key, file_path)
+                self.bucket.download_file(obj.key, file_path)
         profile_data = pd.read_parquet(file_path)
         load = profile_data["out.electricity.total.energy_consumption"]
         load.index = profile_data["timestamp"]
