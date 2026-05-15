@@ -2,34 +2,45 @@
 
 pushd %~dp0
 
-REM Command file for Sphinx documentation
+REM Command file for Jupyter Book documentation
 
-if "%SPHINXBUILD%" == "" (
-	set SPHINXBUILD=sphinx-build
+if "%JUPYTERBOOK%" == "" (
+	set JUPYTERBOOK=jupyter-book
 )
-set SOURCEDIR=.
-set BUILDDIR=_build
 
-%SPHINXBUILD% >NUL 2>NUL
+%JUPYTERBOOK% >NUL 2>NUL
 if errorlevel 9009 (
 	echo.
-	echo.The 'sphinx-build' command was not found. Make sure you have Sphinx
-	echo.installed, then set the SPHINXBUILD environment variable to point
-	echo.to the full path of the 'sphinx-build' executable. Alternatively you
-	echo.may add the Sphinx directory to PATH.
+	echo.The 'jupyter-book' command was not found. Make sure you have Jupyter Book
+	echo.installed, then set the JUPYTERBOOK environment variable to point to
+	echo.the full path of the 'jupyter-book' executable. Alternatively you may
+	echo.add Jupyter Book to PATH.
 	echo.
-	echo.If you don't have Sphinx installed, grab it from
-	echo.https://www.sphinx-doc.org/
+	echo.If you don't have Jupyter Book installed, grab it from
+	echo.https://jupyterbook.org/
 	exit /b 1
 )
 
 if "%1" == "" goto help
 
-%SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+if "%1" == "clean" goto clean
+
+if "%1" == "html" goto html
+
+goto help
+
+:html
+%JUPYTERBOOK% build .
+goto end
+
+:clean
+if exist _build rmdir /s /q _build
 goto end
 
 :help
-%SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+echo Targets:
+echo   make.bat html   Build Jupyter Book HTML docs
+echo   make.bat clean  Remove build artifacts
 
 :end
 popd

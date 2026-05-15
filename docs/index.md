@@ -8,21 +8,10 @@ A Python framework for building synthetic power distribution feeder models from 
 pip install nrel-shift
 ```
 
-```{toctree}
-:hidden: true
-:maxdepth: 2
-:caption: User Guides
+## Documentation
 
-usage/index
-```
-
-```{toctree}
-:hidden: true
-:maxdepth: 2
-:caption: API Reference
-
-references/index
-API_REFERENCE
-MCP_SERVER
-```
+- [User Guides](usage/index.md)
+- [Reference Guides](references/index.md)
+- [API Reference](API_REFERENCE.md)
+- [MCP Server](MCP_SERVER.md)
 

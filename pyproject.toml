@@ -15,8 +15,8 @@ requires-python = ">=3.10"
 license = "BSD-3-clause"
 keywords = []
 authors = [
-  { name = "Kapil Duwadi", email = "Kapil.Duwadi@nlr.gov" },
   { name = "Aadil Latif", email = "Aadil.Latif@nlr.gov" },
+  { name = "Kapil Duwadi", email = "Kapil.Duwadi@nlr.gov" },
   { name = "Erik Pohl", email = "Erik.Pohl@nlr.gov" },
 ]
 classifiers = [
@@ -29,14 +29,14 @@ dependencies = [
   "scikit-learn",
   "plotly",
   "geopy",
-  "grid-data-models==2.3.0",
+  "grid-data-models==2.3.3",
   "importlib-metadata",
   "loguru",
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit", "pytest", "pytest-cov", "pytest-mock", "ruff==0.15.5"]
-doc = ["sphinx", "pydata-sphinx-theme", "myst-parser", "autodoc_pydantic"]
+dev = ["pre-commit", "pytest", "pytest-cov", "pytest-mock", "ruff==0.15.5", "shapely"]
+doc = ["jupyter-book<2", "myst-parser", "autodoc_pydantic"]
 mcp = ["mcp[cli]>=1.2.0", "pyyaml"]
 
 [project.scripts]

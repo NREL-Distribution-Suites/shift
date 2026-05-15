@@ -88,7 +88,7 @@ shift/
 │   ├── mcp_server/      # MCP server for LLM agent integration
 │   └── utils/           # Clustering, nearest points, mesh networks
 ├── tests/               # pytest test files (test_*.py)
-├── docs/                # Sphinx documentation
+├── docs/                # Jupyter Book documentation
 │   ├── usage/           # How-to guides
 │   └── references/      # Auto-generated API docs
 └── pyproject.toml       # Project config, dependencies, tool settings

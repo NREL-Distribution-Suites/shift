@@ -1,20 +1,16 @@
-# Minimal makefile for Sphinx documentation
-#
+# Minimal makefile for Jupyter Book documentation
 
-# You can set these variables from the command line, and also
-# from the environment for the first two.
-SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = .
-BUILDDIR      = _build
+BOOKDIR = .
 
-# Put it first so that "make" without argument is like "make help".
+.PHONY: help html clean
+
 help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@echo "Targets:"
+	@echo "  make html   Build Jupyter Book HTML docs"
+	@echo "  make clean  Remove build artifacts"
 
-.PHONY: help Makefile
+html:
+	jupyter-book build $(BOOKDIR)
 
-# Catch-all target: route all unknown targets to Sphinx using the new
-# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+clean:
+	rm -rf _build
