@@ -261,7 +261,6 @@ class CustomLoadMapper(EdgeEquipmentMapper):
         worst_case_pf = 0.9
         xfmr_loading = ds_load / worst_case_pf * 0.2
         buses = [self.distribution_buses[node] for node in edge]
-        voltages = [bus.nominal_voltage for bus in buses]
         phases = [phase for bus in buses for phase in bus.phases]
         selected_xfmr = None
         for phases_catalog, info in self.xfmr_catalog.items():
