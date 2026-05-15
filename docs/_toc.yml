@@ -1,0 +1,39 @@
+format: jb-book
+root: index
+parts:
+  - caption: User Guides
+    chapters:
+      - file: example/example
+      - file: usage/index
+        sections:
+          - file: usage/complete_example
+          - file: usage/fetching_parcels
+          - file: usage/building_graph
+          - file: usage/updating_branch_type
+          - file: usage/mapping_phases
+          - file: usage/mapping_voltages
+          - file: usage/mapping_equipment
+          - file: usage/building_system
+  - caption: API Reference
+    chapters:
+      - file: references/index
+        sections:
+          - file: references/data_model
+          - file: references/dist_graph
+          - file: references/openstreet_graph
+          - file: references/prsg
+          - file: references/phase_mapper
+          - file: references/voltage_mapper
+          - file: references/equipment_mapper
+          - file: references/system_builder
+          - file: references/openstreet_parcel
+          - file: references/openstreet_roads
+          - file: references/clustering
+          - file: references/nearest_points
+          - file: references/polygon_from_points
+          - file: references/mesh_network
+          - file: references/split_edges
+          - file: references/plot_manager
+          - file: references/plots
+      - file: API_REFERENCE
+      - file: MCP_SERVER

@@ -1,0 +1,18 @@
+title: NREL-shift
+author: Aadil Latif,Kapil Duwadi, Erik Pohl
+copyright: "2026, National Laboratory of the Rockies (NLR)"
+
+execute:
+  execute_notebooks: "off"
+
+only_build_toc_files: true
+
+sphinx:
+  extra_extensions:
+    - sphinx.ext.autodoc
+    - sphinx.ext.autosummary
+    - sphinx.ext.napoleon
+    - sphinxcontrib.autodoc_pydantic
+  config:
+    autodoc_member_order: bysource
+    autoclass_content: both
